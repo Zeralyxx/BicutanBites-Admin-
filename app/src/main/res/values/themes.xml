@@ -3,6 +3,7 @@
     <style name="Base.Theme.FoodOrderingAppAdmin" parent="Theme.Material3.DayNight.NoActionBar">
         <!-- Customize your light theme here. -->
         <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+        <item name="android:forceDarkAllowed" tools:targetApi="q">false</item>
     </style>
 
     <style name="Theme.FoodOrderingAppAdmin" parent="Base.Theme.FoodOrderingAppAdmin" />
@@ -72,5 +73,11 @@
         <item name="endIconTint">#DC2626</item>
         <item name="android:textColorHint">#DC2626</item>
         <item name="android:textColor">#DC2626</item>
+    </style>
+
+    <!-- Style for Rounding ImageViews in Admin Menu -->
+    <style name="RoundedImageView">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">12dp</item>
     </style>
 </resources>

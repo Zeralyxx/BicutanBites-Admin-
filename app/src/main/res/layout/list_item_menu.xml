@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="12dp"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="2dp"
+    app:strokeWidth="1dp"
+    app:cardBackgroundColor="@android:color/white"
+    app:strokeColor="#EBEBEB">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="16dp">
+
+        <!-- Food Image -->
+        <com.google.android.material.imageview.ShapeableImageView
+            android:id="@+id/itemImage"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:scaleType="centerCrop"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:shapeAppearanceOverlay="@style/RoundedImageView"
+            tools:src="@tools:sample/backgrounds/scenic" />
+
+        <!-- Item Name -->
+        <TextView
+            android:id="@+id/itemName"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:text="Classic Burger"
+            android:textColor="#111827"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            app:layout_constraintStart_toEndOf="@id/itemImage"
+            app:layout_constraintTop_toTopOf="@id/itemImage"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <!-- Item Description -->
+        <TextView
+            android:id="@+id/itemDescription"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Juicy beef patty with fresh vegetables"
+            android:textColor="#6B7280"
+            android:textSize="14sp"
+            app:layout_constraintStart_toStartOf="@id/itemName"
+            app:layout_constraintTop_toBottomOf="@id/itemName"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <!-- Item Price -->
+        <TextView
+            android:id="@+id/itemPrice"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="$12.99"
+            android:textColor="#111827"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            app:layout_constraintStart_toStartOf="@id/itemName"
+            app:layout_constraintTop_toBottomOf="@id/itemDescription" />
+
+        <!-- Category Chip -->
+        <com.google.android.material.chip.Chip
+            android:id="@+id/itemCategoryChip"
+            style="@style/Widget.MaterialComponents.Chip.Action"
+            android:layout_width="wrap_content"
+            android:layout_height="32dp"
+            android:text="Burgers"
+            android:textColor="#D97706"
+            app:chipBackgroundColor="#FEF3C7"
+            app:chipCornerRadius="6dp"
+            app:chipStrokeWidth="0dp"
+            app:layout_constraintStart_toEndOf="@id/itemPrice"
+            app:layout_constraintBaseline_toBaselineOf="@id/itemPrice"
+            android:layout_marginStart="12dp" />
+
+        <!-- Delete Button -->
+        <ImageButton
+            android:id="@+id/deleteButton"
+            android:layout_width="37dp"
+            android:layout_height="37dp"
+            android:background="@drawable/button_bg_red"
+            android:src="@drawable/ic_delete"
+            app:tint="@color/status_cancelled_tint"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent" />
+
+        <!-- Edit Button -->
+        <ImageButton
+            android:id="@+id/editButton"
+            android:layout_width="37dp"
+            android:layout_height="37dp"
+            android:layout_marginEnd="8dp"
+            android:background="@drawable/button_bg_blue"
+            android:src="@drawable/ic_edit"
+            app:tint="@color/status_made_tint"
+            app:layout_constraintEnd_toStartOf="@id/deleteButton"
+            app:layout_constraintBottom_toBottomOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</com.google.android.material.card.MaterialCardView>
