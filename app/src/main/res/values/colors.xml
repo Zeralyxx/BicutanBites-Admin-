@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="purple_500">#6200EE</color>
+
+    <!-- Default Text Color -->
+    <color name="text_color_default">#111827</color>
+
+    <!-- PENDING (Yellow/Amber) -->
+    <color name="status_pending_bg">#FEF9C3</color> <!-- Light Yellow -->
+    <color name="status_pending_tint">#D97706</color> <!-- Dark Amber/Tint Color -->
+
+    <!-- BEING MADE (Blue) -->
+    <color name="status_made_bg">#E0F2FE</color> <!-- Light Blue -->
+    <color name="status_made_tint">#0284C7</color> <!-- Dark Blue/Tint Color -->
+
+    <!-- BEING DELIVERED (Violet/Purple) -->
+    <color name="status_delivered_bg">#EDE9FE</color> <!-- Light Purple -->
+    <color name="status_delivered_tint">#7C3AED</color> <!-- Dark Purple/Tint Color -->
+
+    <!-- CANCELLED (Red) -->
+    <color name="status_cancelled_bg">#FEE2E2</color> <!-- Light Red -->
+    <color name="status_cancelled_tint">#DC2626</color> <!-- Dark Red/Tint Color -->
+</resources>

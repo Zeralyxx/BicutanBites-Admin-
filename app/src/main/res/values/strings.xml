@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">foodOrderingApp(Admin)</string>
+
+    <string-array name="order_status_options">
+        <item>Pending</item>
+        <item>Being Made</item>
+        <item>Being Delivered</item>
+        <item>Cancelled</item>
+    </string-array>
+</resources>
