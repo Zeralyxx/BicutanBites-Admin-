@@ -13,14 +13,20 @@
         android:forceDarkAllowed="false"
         android:theme="@style/Theme.FoodOrderingAppAdmin">
 
+        <!-- 1. LoginActivity is now the LAUNCHER (starts first) -->
         <activity
-            android:name=".MainActivity"
+            android:name=".LoginActivity"
             android:exported="true">
             <intent-filter>
-                <action android:name="android.intent.action.MAIN"/>
-                <category android:name="android.intent.category.LAUNCHER"/>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- 2. MainActivity is just a regular activity now -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="false" />
 
     </application>
 </manifest>

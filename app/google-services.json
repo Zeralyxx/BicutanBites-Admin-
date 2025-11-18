@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "637522288072",
+    "project_id": "bicutanbites",
+    "storage_bucket": "bicutanbites.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:637522288072:android:2ccb9d03c3cfc960c1f4fd",
+        "android_client_info": {
+          "package_name": "com.example.foodorderingappadmin"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCF-l9ycCrInLruSbjDHAOjzElZz8gkauY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

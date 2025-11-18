@@ -8,7 +8,7 @@
     android:background="#F9FAFB"
     tools:context=".AdminFragment">
 
-    <!-- Header (Copied from reference) -->
+    <!-- Header -->
     <LinearLayout
         android:id="@+id/headerSection"
         android:layout_width="0dp"
@@ -36,10 +36,22 @@
             android:textSize="16sp" />
     </LinearLayout>
 
-    <!--
-      Use NestedScrollView because we have a RecyclerView inside.
-      This should be constrained above your BottomNavigationView.
-    -->
+    <!-- NEW: Logout Button -->
+    <!-- Placed here to sit on top of the header gradient -->
+    <ImageButton
+        android:id="@+id/btnLogout"
+        android:layout_width="70dp"
+        android:layout_height="70dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="16dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="Logout"
+        android:src="@drawable/ic_logout"
+        app:tint="@android:color/white"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <!-- Scrollable Content -->
     <androidx.core.widget.NestedScrollView
         android:id="@+id/scrollView"
         android:layout_width="0dp"
