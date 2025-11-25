@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- State when chip is checked -->
+    <!-- State when chip is checked: Orange -->
     <item android:color="#FF6B00" android:state_checked="true"/>
-    <!-- Default state -->
+    <!-- Default state: White -->
     <item android:color="#FFFFFF" android:state_checked="false"/>
 </selector>

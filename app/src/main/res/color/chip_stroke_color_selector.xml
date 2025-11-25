@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- State when chip is checked (transparent or same as background) -->
+    <!-- State when chip is checked: Transparent (or no stroke) -->
     <item android:color="@android:color/transparent" android:state_checked="true"/>
-    <!-- Default state -->
+    <!-- Default state: Light Gray -->
     <item android:color="#D1D5DB" android:state_checked="false"/>
 </selector>

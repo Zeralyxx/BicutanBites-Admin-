@@ -19,24 +19,32 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException;
 import com.google.firebase.auth.FirebaseAuthInvalidUserException;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.DocumentSnapshot;
 
 public class LoginActivity extends AppCompatActivity {
 
     private TextInputEditText emailEditText, passwordEditText;
     private MaterialButton btnLogin;
     private FirebaseAuth mAuth;
+    private FirebaseFirestore db; // Initialize Firestore
+
+    // The single, authorized admin email (Optional, but good for quick verification)
+    // IMPORTANT: If you want only one specific email to work, you can uncomment these lines
+    // private static final String AUTHORIZED_EMAIL = "admin@foodexpress.com";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // Force Light Mode (Consistent with your previous request)
+        // Force Light Mode
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
 
         setContentView(R.layout.activity_login);
 
-        // Initialize Firebase Auth
+        // Initialize Firebase services
         mAuth = FirebaseAuth.getInstance();
+        db = FirebaseFirestore.getInstance();
 
         // Initialize Views
         emailEditText = findViewById(R.id.emailEditText);
@@ -45,7 +53,7 @@ public class LoginActivity extends AppCompatActivity {
 
         // Check if user is already logged in
         if (mAuth.getCurrentUser() != null) {
-            navigateToDashboard();
+            checkAdminRoleAndNavigate(mAuth.getCurrentUser());
         }
 
         btnLogin.setOnClickListener(new View.OnClickListener() {
@@ -73,24 +81,24 @@ public class LoginActivity extends AppCompatActivity {
             return;
         }
 
-        // Show loading state (Optional: Disable button or show progress bar)
-        btnLogin.setEnabled(false);
-        btnLogin.setText("Signing In...");
+        // Show loading state
+        setLoadingState(true);
 
-        // Authenticate with Firebase
+        // 1. Authenticate with Firebase
         mAuth.signInWithEmailAndPassword(email, password)
                 .addOnCompleteListener(new OnCompleteListener<AuthResult>() {
                     @Override
                     public void onComplete(@NonNull Task<AuthResult> task) {
                         if (task.isSuccessful()) {
-                            // Login Success
-                            Toast.makeText(LoginActivity.this, "Login Successful", Toast.LENGTH_SHORT).show();
-                            navigateToDashboard();
+                            FirebaseUser user = mAuth.getCurrentUser();
+                            if (user != null) {
+                                // 2. If authentication succeeds, verify the admin role
+                                checkAdminRoleAndNavigate(user);
+                            } else {
+                                handleLoginFailure("Authentication failed: User object is null.");
+                            }
                         } else {
                             // Login Failure
-                            btnLogin.setEnabled(true);
-                            btnLogin.setText("Sign In");
-
                             String errorMessage;
                             try {
                                 throw task.getException();
@@ -99,12 +107,55 @@ public class LoginActivity extends AppCompatActivity {
                             } catch (FirebaseAuthInvalidCredentialsException e) {
                                 errorMessage = "Invalid email or password.";
                             } catch (Exception e) {
-                                errorMessage = "Authentication failed.";
+                                errorMessage = "Authentication failed. " + e.getMessage();
                             }
-                            Toast.makeText(LoginActivity.this, errorMessage, Toast.LENGTH_SHORT).show();
+                            handleLoginFailure(errorMessage);
                         }
                     }
                 });
+    }
+
+    private void checkAdminRoleAndNavigate(FirebaseUser user) {
+        // We will check a dedicated collection 'admins'.
+        // A document exists in 'admins' with the user's UID if they are an admin.
+        db.collection("admins").document(user.getUid()).get()
+                .addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+                    @Override
+                    public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+                        if (task.isSuccessful()) {
+                            DocumentSnapshot document = task.getResult();
+                            if (document.exists()) {
+                                // Role Check Success: User is an admin
+                                Toast.makeText(LoginActivity.this, "Admin Login Successful", Toast.LENGTH_SHORT).show();
+                                navigateToDashboard();
+                            } else {
+                                // Role Check Failure: Valid user but not an admin
+                                // IMPORTANT: Sign out the user immediately to prevent access.
+                                mAuth.signOut();
+                                handleLoginFailure("Access Denied: Account is not authorized as an administrator.");
+                            }
+                        } else {
+                            // Firestore Read Failure (e.g., network error)
+                            mAuth.signOut();
+                            handleLoginFailure("Error checking permissions. Please try again.");
+                        }
+                    }
+                });
+    }
+
+    private void handleLoginFailure(String message) {
+        setLoadingState(false);
+        Toast.makeText(LoginActivity.this, message, Toast.LENGTH_LONG).show();
+    }
+
+    private void setLoadingState(boolean isLoading) {
+        if (isLoading) {
+            btnLogin.setEnabled(false);
+            btnLogin.setText("Signing In...");
+        } else {
+            btnLogin.setEnabled(true);
+            btnLogin.setText("Sign In");
+        }
     }
 
     private void navigateToDashboard() {

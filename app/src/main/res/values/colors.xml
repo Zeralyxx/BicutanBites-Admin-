@@ -21,5 +21,6 @@
 
     <!-- CANCELLED (Red) -->
     <color name="status_cancelled_bg">#FEE2E2</color> <!-- Light Red -->
-    <color name="status_cancelled_tint">#DC2626</color> <!-- Dark Red/Tint Color -->
+    <color name="status_cancelled_tint">#DC2626</color>
+    <color name="material_grey_300">#BEBEBE</color> <!-- Dark Red/Tint Color -->
 </resources>
