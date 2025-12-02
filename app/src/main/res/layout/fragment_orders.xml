@@ -112,189 +112,34 @@
                 </com.google.android.material.chip.ChipGroup>
             </HorizontalScrollView>
 
-            <androidx.cardview.widget.CardView
+            <!-- ... inside fragment_orders.xml ... -->
+
+            <androidx.core.widget.NestedScrollView
+                android:id="@+id/ordersScrollView"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:elevation="3dp"
-                app:cardCornerRadius="12dp">
+                android:layout_height="match_parent"
+                android:fillViewport="true"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/headerSection">
 
                 <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
+                    android:layout_height="match_parent"
+                    android:orientation="vertical">
 
-                    <LinearLayout
+                    <!-- ... TextViews and ChipGroup ... -->
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/ordersRecyclerView"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal">
-                    </LinearLayout>
+                        android:nestedScrollingEnabled="false" />
+                    <!-- height must be wrap_content -->
 
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="8dp"
-                        android:orientation="vertical"
-                        android:padding="12dp"
-                        android:background="@drawable/rounded_light_gray_bg">
-
-                        <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Delivery Information:"
-                        android:textColor="#111827"
-                        android:textSize="14sp"
-                        android:textStyle="bold" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
-                            android:drawablePadding="6dp"
-                            android:text="+1 (555) 012-3456"
-                            android:textColor="#374151"
-                            android:textSize="15sp"
-                            app:drawableStartCompat="@drawable/ic_phone" />
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:drawablePadding="6dp"
-                            android:text="369 River Road, San Juan, Philippines"
-                            android:textColor="#374151"
-                            android:textSize="15sp"
-                            app:drawableStartCompat="@drawable/ic_location" />
-                    </LinearLayout>
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Items:"
-                        android:textColor="#111827"
-                        android:textSize="14sp"
-                        android:textStyle="bold" />
-
-                    <com.google.android.material.chip.ChipGroup
-                        android:id="@+id/itemChipGroup"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp">
-
-                        <com.google.android.material.chip.Chip
-                            style="@style/ItemChipStyle"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="2x Sushi Platter" />
-
-                        <com.google.android.material.chip.Chip
-                            style="@style/ItemChipStyle"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="2x Fresh Garden Salad" />
-
-                        <com.google.android.material.chip.Chip
-                            style="@style/ItemChipStyle"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="2x Chocolate Cake" />
-
-                    </com.google.android.material.chip.ChipGroup>
-
-                    <com.google.android.material.card.MaterialCardView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        app:cardBackgroundColor="#E0F2FE"
-                        app:cardCornerRadius="8dp"
-                        app:cardElevation="0dp">
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:padding="12dp">
-
-                            <ImageView
-                                android:layout_width="20dp"
-                                android:layout_height="20dp"
-                                android:src="@drawable/ic_chat"
-                                android:layout_marginEnd="10dp"
-                                android:layout_marginTop="2dp"
-                                app:tint="#0284C7" />
-
-                            <LinearLayout
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:orientation="vertical">
-
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="Customer Note"
-                                    android:textColor="#0369A1"
-                                    android:textSize="14sp"
-                                    android:textStyle="bold"/>
-
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:layout_marginTop="2dp"
-                                    android:text="Allergic to peanuts - please ensure no cross contamination"
-                                    android:textColor="#075985"
-                                    android:textSize="13sp" />
-                            </LinearLayout>
-                        </LinearLayout>
-                    </com.google.android.material.card.MaterialCardView>
-
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:layout_marginTop="16dp"
-                        android:layout_marginBottom="16dp"
-                        android:background="#E5E7EB" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="4dp"
-                        android:text="Order Status"
-                        android:textColor="#111827"
-                        android:textSize="14sp"
-                        android:textStyle="bold" />
-
-                    <com.google.android.material.textfield.TextInputLayout
-                        android:id="@+id/statusDropdownLayout"
-                        style="@style/Widget.App.ExposedDropdownMenu.Cancelled"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        app:startIconDrawable="@drawable/ic_cancel">
-
-                        <AutoCompleteTextView
-                            android:id="@+id/statusAutoComplete"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:inputType="none"
-                            android:text="Cancelled" />
-
-                    </com.google.android.material.textfield.TextInputLayout>
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnMarkAsDone"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:padding="12dp"
-                        android:text="Mark as Done &amp; Move to Sales History"
-                        android:textColor="#FFFFFF"
-                        android:textStyle="bold"
-                        app:backgroundTint="#22C55E"
-                        app:cornerRadius="8dp"
-                        app:icon="@drawable/ic_archive"
-                        app:iconGravity="textStart" />
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
+            </androidx.core.widget.NestedScrollView>
 
         </LinearLayout>
     </ScrollView>

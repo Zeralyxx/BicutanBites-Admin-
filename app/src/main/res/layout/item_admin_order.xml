@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="16dp"
+    android:layout_marginHorizontal="4dp"
+    android:layout_marginTop="4dp"
+    app:cardBackgroundColor="@android:color/white"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="3dp"
+    app:strokeWidth="0dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <!-- Header: Order ID and Total -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:layout_marginBottom="4dp">
+
+            <TextView
+                android:id="@+id/txtOrderId"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Order #12345"
+                android:textColor="#111827"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/txtTotal"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="₱0.00"
+                android:textColor="#22C55E"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Date -->
+        <TextView
+            android:id="@+id/txtDate"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:text="Dec 02, 10:00 PM"
+            android:textColor="#6B7280"
+            android:textSize="12sp" />
+
+        <!-- Delivery Info Box -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:orientation="vertical"
+            android:padding="12dp"
+            android:background="@drawable/rounded_light_gray_bg">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Delivery Information:"
+                android:textColor="#111827"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <!-- NEW: Customer Name -->
+            <TextView
+                android:id="@+id/txtCustomerName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:drawablePadding="6dp"
+                android:text="Loading Name..."
+                android:textColor="#374151"
+                android:textSize="13sp"
+                app:drawableStartCompat="@drawable/ic_person"
+                app:drawableTint="#374151"/>
+
+            <TextView
+                android:id="@+id/txtCustomerPhone"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:drawablePadding="6dp"
+                android:text="Loading Phone..."
+                android:textColor="#374151"
+                android:textSize="13sp"
+                app:drawableStartCompat="@drawable/ic_phone"
+                app:drawableTint="#374151"/>
+
+            <TextView
+                android:id="@+id/txtDeliveryAddress"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:drawablePadding="6dp"
+                android:text="Loading Address..."
+                android:textColor="#374151"
+                android:textSize="13sp"
+                app:drawableStartCompat="@drawable/ic_location"
+                app:drawableTint="#374151"/>
+        </LinearLayout>
+
+        <!-- Items Header -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Items:"
+            android:textColor="#111827"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <!-- ChipGroup for Items -->
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/itemChipGroup"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp" />
+
+        <!-- Customer Note Card -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardCustomerNote"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            app:cardBackgroundColor="#E0F2FE"
+            app:cardCornerRadius="8dp"
+            app:cardElevation="0dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:padding="12dp">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/ic_chat"
+                    android:layout_marginEnd="10dp"
+                    android:layout_marginTop="2dp"
+                    app:tint="#0284C7" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Customer Note"
+                        android:textColor="#0369A1"
+                        android:textSize="14sp"
+                        android:textStyle="bold"/>
+
+                    <TextView
+                        android:id="@+id/txtCustomerNote"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="No notes."
+                        android:textColor="#075985"
+                        android:textSize="13sp" />
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="16dp"
+            android:background="#E5E7EB" />
+
+        <!-- Status Dropdown -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="4dp"
+            android:text="Order Status"
+            android:textColor="#111827"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/statusDropdownLayout"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:boxStrokeWidth="0dp"
+            app:boxCornerRadiusTopStart="8dp"
+            app:boxCornerRadiusTopEnd="8dp"
+            app:boxCornerRadiusBottomStart="8dp"
+            app:boxCornerRadiusBottomEnd="8dp">
+
+            <AutoCompleteTextView
+                android:id="@+id/statusAutoComplete"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="none"
+                android:text="Pending"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Mark as Done Button -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnMarkAsDone"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:padding="12dp"
+            android:text="Mark as Done &amp; Move to Sales History"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold"
+            app:backgroundTint="#22C55E"
+            app:cornerRadius="8dp"
+            app:icon="@drawable/ic_archive"
+            app:iconGravity="textStart" />
+
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>
