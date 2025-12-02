@@ -79,7 +79,7 @@ public class AdminOrderAdapter extends RecyclerView.Adapter<AdminOrderAdapter.Or
                         if (documentSnapshot.exists()) {
                             String name = documentSnapshot.getString("name");
                             String address = documentSnapshot.getString("address");
-                            String phone = documentSnapshot.getString("phone");
+                            String phone = documentSnapshot.getString("phoneNumber");
                             // String email = documentSnapshot.getString("email"); // We don't need email anymore
 
                             holder.txtCustomerName.setText(name != null ? name : "Unknown User");

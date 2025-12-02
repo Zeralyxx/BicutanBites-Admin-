@@ -317,6 +317,7 @@
                 </LinearLayout>
             </LinearLayout>
 
+            <!-- Tabs -->
             <com.google.android.material.tabs.TabLayout
                 android:id="@+id/segmentTabs"
                 android:layout_width="match_parent"
@@ -333,7 +334,7 @@
                 app:tabRippleColor="@android:color/transparent"
                 app:tabSelectedTextColor="#111827"
                 app:tabTextColor="#6B7280"
-                app:tabTextAppearance="@style/SegmentTabTextStyle" >
+                app:tabTextAppearance="@style/SegmentTabTextStyle">
 
                 <com.google.android.material.tabs.TabItem
                     android:layout_width="wrap_content"
@@ -352,35 +353,13 @@
 
             </com.google.android.material.tabs.TabLayout>
 
+            <!-- Fragment Container: Logic will swap fragments here -->
             <FrameLayout
                 android:id="@+id/segmentContainer"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp">
-
-                <LinearLayout
-                    android:id="@+id/customersContent"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Recent Customers"
-                        android:textColor="#111827"
-                        android:textSize="18sp"
-                        android:textStyle="bold" />
-
-                    <androidx.recyclerview.widget.RecyclerView
-                        android:id="@+id/recyclerRecentCustomers"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        tools:itemCount="1"/>
-                </LinearLayout>
-
-            </FrameLayout>
+                android:layout_marginTop="16dp"
+                android:minHeight="200dp"/>
 
         </LinearLayout>
     </ScrollView>

@@ -67,6 +67,32 @@
                 android:textColor="#6B7280"
                 android:textSize="14sp" />
 
+            <!-- Search Bar for User Name -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/searchBarLayout"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:hint="Search customer name..."
+                app:boxBackgroundColor="@android:color/white"
+                app:boxCornerRadiusBottomEnd="12dp"
+                app:boxCornerRadiusBottomStart="12dp"
+                app:boxCornerRadiusTopEnd="12dp"
+                app:boxCornerRadiusTopStart="12dp"
+                app:boxStrokeWidth="1dp"
+                app:boxStrokeColor="#E5E7EB"
+                app:startIconDrawable="@drawable/ic_search"
+                app:startIconTint="#9CA3AF">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/searchEditText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="textPersonName" />
+
+            </com.google.android.material.textfield.TextInputLayout>
+
             <HorizontalScrollView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

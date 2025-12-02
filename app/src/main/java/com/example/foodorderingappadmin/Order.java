@@ -1,21 +1,25 @@
 package com.example.foodorderingappadmin;
 
 import com.google.firebase.firestore.PropertyName;
+import com.google.firebase.firestore.Exclude; // Import this for Exclude annotation
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
 public class Order {
     private String orderId;
-    private String userId; // Maps to "userID" in Firestore
+    private String userId;
     private String status;
     private double total;
     private Date orderedAt;
     private String note;
     private String paymentMethod;
-
-    // Items stored as a List of Maps (e.g., [{name="Burger", qty=2}, ...])
     private List<Map<String, Object>> items;
+
+    // NEW FIELD: Used only for filtering/display logic in the fragment/adapter.
+    // We exclude it so Firestore doesn't try to write this field back to the database.
+    @Exclude
+    private String customerNameForSearch;
 
     public Order() {}
 
@@ -23,7 +27,6 @@ public class Order {
     public String getOrderId() { return orderId; }
     public void setOrderId(String orderId) { this.orderId = orderId; }
 
-    // CRITICAL: Map Java 'userId' to Firestore 'userID'
     @PropertyName("userID")
     public String getUserId() { return userId; }
 
@@ -47,4 +50,10 @@ public class Order {
 
     public String getPaymentMethod() { return paymentMethod; }
     public void setPaymentMethod(String paymentMethod) { this.paymentMethod = paymentMethod; }
+
+    // Getter/Setter for the temporary search name field
+    @Exclude
+    public String getCustomerNameForSearch() { return customerNameForSearch; }
+    @Exclude
+    public void setCustomerNameForSearch(String customerNameForSearch) { this.customerNameForSearch = customerNameForSearch; }
 }
