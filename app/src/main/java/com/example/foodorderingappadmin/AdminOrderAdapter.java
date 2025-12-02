@@ -3,6 +3,7 @@ package com.example.foodorderingappadmin;
 import android.content.Context;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -17,6 +18,9 @@ import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.android.volley.Request;
+import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.Volley;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.chip.Chip;
@@ -25,7 +29,11 @@ import com.google.android.material.textfield.TextInputLayout;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.text.SimpleDateFormat;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -36,6 +44,124 @@ public class AdminOrderAdapter extends RecyclerView.Adapter<AdminOrderAdapter.Or
     private List<Order> orderList;
     private FirebaseFirestore db;
     private String[] statusOptions;
+
+    // IMPORTANT: REPLACE "AIzaSyCF-l9ycCrInLruSbjDHAOjzElZz8gkauY" with your actual FCM Server Key
+    private static final String FCM_SERVER_KEY = "AIzaSyCF-l9ycCrInLruSbjDHAOjzElZz8gkauY";
+
+    // --- Helper for Notification Content ---
+    private String[] getNotificationContentForStatus(String status) {
+        String title = "";
+        String message = "";
+
+        switch (status) {
+            case "Pending":
+                title = "Order Received";
+                message = "We’ve received your order and will begin preparing it shortly.";
+                break;
+
+            case "Being Made":
+                title = "Your Order Is Being Prepared";
+                message = "Our kitchen is now cooking your order. Thank you for waiting!";
+                break;
+
+            case "Being Delivered":
+                title = "Your Order Is On the Way 🚗";
+                message = "Our rider is heading to your location. Please keep your phone nearby.";
+                break;
+
+            case "Cancelled":
+                title = "Order Cancelled";
+                message = "Your order has been cancelled. If you believe this is a mistake, please contact us.";
+                break;
+
+            case "Completed":
+                title = "Order Complete";
+                message = "Your order has been completed. Thank you for ordering!";
+                break;
+            default:
+                title = "Order Update";
+                message = "Your order status has changed to: " + status;
+                break;
+        }
+
+        return new String[]{title, message};
+    }
+
+    // --- FCM Sending Logic (Uses Volley) ---
+    private void sendPushNotification(String userFcmToken, String title, String message) {
+        JSONObject notification = new JSONObject();
+        JSONObject notifBody = new JSONObject();
+        try {
+            notifBody.put("title", title);
+            notifBody.put("body", message);
+
+            notification.put("to", userFcmToken);
+            notification.put("notification", notifBody);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        // --- Network Request using Volley (Standard Legacy Endpoint) ---
+        String url = "https://fcm.googleapis.com/fcm/send";
+
+        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.POST, url, notification,
+                response -> Log.d("FCM_SEND", "Success: " + response),
+                error -> Log.e("FCM_SEND", "Volley Error: " + error)) {
+            @Override
+            public Map<String, String> getHeaders() {
+                Map<String, String> headers = new HashMap<>();
+                headers.put("Content-Type", "application/json");
+                headers.put("Authorization", "key=" + FCM_SERVER_KEY);
+                return headers;
+            }
+        };
+
+        // Add to request queue (Volley)
+        Volley.newRequestQueue(context).add(jsonObjectRequest);
+    }
+
+    // --- Firestore Update and Token Fetch ---
+    private void updateOrderStatus(String orderId, String newStatus) {
+        if (orderId == null) return;
+
+        // 1. Update status in Firestore
+        db.collection("orders").document(orderId)
+                .update("status", newStatus)
+                .addOnSuccessListener(aVoid -> {
+                    Toast.makeText(context, "Order Updated", Toast.LENGTH_SHORT).show();
+
+                    // 2. Fetch the order again to get user ID
+                    db.collection("orders").document(orderId).get()
+                            .addOnSuccessListener(doc -> {
+                                if (doc.exists()) {
+                                    String userId = doc.getString("userID"); // Use userID field from DB
+
+                                    if (userId != null && !userId.isEmpty()) {
+                                        // 3. Fetch user token and notification preference
+                                        db.collection("users").document(userId).get()
+                                                .addOnSuccessListener(userDoc -> {
+                                                    if (userDoc.exists()) {
+                                                        String token = userDoc.getString("fcmToken");
+                                                        // NOTE: Using Boolean object to handle potential null value from Firestore
+                                                        Boolean receiveUpdates = userDoc.getBoolean("receiveOrderNotifications");
+
+                                                        // Check for token and user preference (default true if field is missing/null)
+                                                        if (token != null && !token.isEmpty() && (receiveUpdates == null || receiveUpdates)) {
+
+                                                            // 4. Generate content and send
+                                                            String[] notif = getNotificationContentForStatus(newStatus);
+                                                            sendPushNotification(token, notif[0], notif[1]);
+                                                        }
+                                                    }
+                                                });
+                                    }
+                                }
+                            });
+                })
+                .addOnFailureListener(e ->
+                        Toast.makeText(context, "Update Failed", Toast.LENGTH_SHORT).show()
+                );
+    }
 
     public AdminOrderAdapter(Context context, List<Order> orderList) {
         this.context = context;
@@ -68,7 +194,7 @@ public class AdminOrderAdapter extends RecyclerView.Adapter<AdminOrderAdapter.Or
 
         // --- 2. User/Delivery Info (Fetched from Users Collection) ---
         // Initialize placeholders
-        holder.txtCustomerName.setText("Loading Name...");
+        holder.txtCustomerName.setText("Loading...");
         holder.txtDeliveryAddress.setText("Loading Address...");
         holder.txtCustomerPhone.setText("Loading Info...");
 
@@ -80,16 +206,18 @@ public class AdminOrderAdapter extends RecyclerView.Adapter<AdminOrderAdapter.Or
                             String name = documentSnapshot.getString("name");
                             String address = documentSnapshot.getString("address");
                             String phone = documentSnapshot.getString("phoneNumber");
-                            // String email = documentSnapshot.getString("email"); // We don't need email anymore
+                            String email = documentSnapshot.getString("email");
 
                             holder.txtCustomerName.setText(name != null ? name : "Unknown User");
                             holder.txtDeliveryAddress.setText(address != null ? address : "No Address Provided");
 
-                            // MODIFIED LOGIC: Only show phone if it exists, otherwise show placeholder
+                            // MODIFIED LOGIC: Show phone, fallback to email
                             if (phone != null && !phone.isEmpty()) {
                                 holder.txtCustomerPhone.setText(phone);
+                            } else if (email != null && !email.isEmpty()) {
+                                holder.txtCustomerPhone.setText(email);
                             } else {
-                                holder.txtCustomerPhone.setText("No Phone Provided");
+                                holder.txtCustomerPhone.setText("No Contact Info");
                             }
                         } else {
                             holder.txtCustomerName.setText("User Not Found");
@@ -150,14 +278,6 @@ public class AdminOrderAdapter extends RecyclerView.Adapter<AdminOrderAdapter.Or
         chipGroup.addView(chip);
     }
 
-    private void updateOrderStatus(String orderId, String newStatus) {
-        if (orderId == null) return;
-        db.collection("orders").document(orderId)
-                .update("status", newStatus)
-                .addOnSuccessListener(aVoid -> Toast.makeText(context, "Order Updated", Toast.LENGTH_SHORT).show())
-                .addOnFailureListener(e -> Toast.makeText(context, "Update Failed", Toast.LENGTH_SHORT).show());
-    }
-
     private void applyStatusStyle(OrderViewHolder holder, String status) {
         int bgColorId = android.R.color.white;
         int tintColorId = R.color.black;
@@ -205,7 +325,7 @@ public class AdminOrderAdapter extends RecyclerView.Adapter<AdminOrderAdapter.Or
             txtOrderId = itemView.findViewById(R.id.txtOrderId);
             txtDate = itemView.findViewById(R.id.txtDate);
             txtTotal = itemView.findViewById(R.id.txtTotal);
-            txtCustomerName = itemView.findViewById(R.id.txtCustomerName); // NEW
+            txtCustomerName = itemView.findViewById(R.id.txtCustomerName);
             txtCustomerPhone = itemView.findViewById(R.id.txtCustomerPhone);
             txtDeliveryAddress = itemView.findViewById(R.id.txtDeliveryAddress);
             txtCustomerNote = itemView.findViewById(R.id.txtCustomerNote);

@@ -35,7 +35,9 @@ android {
 dependencies {
 
     implementation(platform("com.google.firebase:firebase-bom:34.6.0"))
+    implementation("com.google.firebase:firebase-messaging:23.4.0")
     implementation("com.github.bumptech.glide:glide:4.16.0")
+    implementation("com.android.volley:volley:1.2.1")
     implementation(libs.appcompat)
     implementation(libs.material)
     implementation(libs.activity)
