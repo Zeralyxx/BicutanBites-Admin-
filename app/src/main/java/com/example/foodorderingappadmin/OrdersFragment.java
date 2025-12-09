@@ -33,8 +33,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 public class OrdersFragment extends Fragment {
@@ -52,8 +50,7 @@ public class OrdersFragment extends Fragment {
     // Listener object to manage the Firestore subscription
     private ListenerRegistration orderListenerRegistration;
 
-    // CORRECTED: ExecutorService declaration
-    private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    // FIX: Removed private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
     private String selectedStatus = "All";
     private String searchText = "";
@@ -84,27 +81,27 @@ public class OrdersFragment extends Fragment {
         setupSearchListener();
     }
 
+    // Start listening when the fragment becomes visible
     @Override
     public void onStart() {
         super.onStart();
         fetchOrders();
     }
 
+    // Stop listening when the fragment goes into the background
     @Override
     public void onStop() {
         super.onStop();
         if (orderListenerRegistration != null) {
+            // Unsubscribe from Firestore updates
             orderListenerRegistration.remove();
         }
     }
 
-    // FIX 3: Add executor shutdown hook
     @Override
     public void onDestroy() {
         super.onDestroy();
-        if (executor != null && !executor.isShutdown()) {
-            executor.shutdownNow();
-        }
+        // FIX: No executor shutdown needed since the field was removed.
     }
 
     private void fetchOrders() {
@@ -140,9 +137,10 @@ public class OrdersFragment extends Fragment {
 
                         String userId = order.getUserId();
                         if (userId != null && !userId.isEmpty()) {
-                            // Fetch user name in a background task
+                            // FIX: Removed custom executor from continueWith.
+                            // The task now uses the GMS Task internal background pool.
                             Task<Void> userTask = db.collection("users").document(userId).get()
-                                    .continueWith(executor, (Task<DocumentSnapshot> task) -> { // Use the executor for parallel background fetching
+                                    .continueWith((Task<DocumentSnapshot> task) -> {
                                         if (task.isSuccessful() && task.getResult().exists()) {
                                             String name = task.getResult().getString("name");
                                             order.setCustomerNameForSearch(name);
@@ -153,22 +151,21 @@ public class OrdersFragment extends Fragment {
                         }
                     }
 
-                    // FIX 4: Run the final UI update on the Main Thread (default behavior without an executor argument)
+                    // The Tasks.whenAll().addOnCompleteListener() runs on the Main Thread by default,
+                    // which is correct for updating the UI.
                     Tasks.whenAll(userFetchTasks).addOnCompleteListener(task -> {
                         if (!isAdded()) return;
 
                         masterOrderList.clear();
                         masterOrderList.addAll(incomingOrders);
 
-                        // This call now executes on the Main Thread, resolving the crash.
+                        // This call executes on the Main Thread, resolving the crash.
                         updateChipCountsAndFilter(masterOrderList);
                     });
                 }
             }
         });
     }
-
-    // --- Remaining methods are unchanged ---
 
     private void updateChipCountsAndFilter(List<Order> orders) {
         if (getView() == null) {
@@ -189,7 +186,6 @@ public class OrdersFragment extends Fragment {
             }
         }
 
-        // UI updates happen inside these methods, which is now safe.
         updateChipCount(R.id.chipAll, orders.size(), currentRawStatus, "All");
         updateChipCount(R.id.chipPending, pendingCount, currentRawStatus, "Pending");
         updateChipCount(R.id.chipBeingMade, madeCount, currentRawStatus, "Being Made");
