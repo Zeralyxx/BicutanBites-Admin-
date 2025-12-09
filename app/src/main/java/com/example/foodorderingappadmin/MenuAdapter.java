@@ -47,7 +47,7 @@ public class MenuAdapter extends RecyclerView.Adapter<MenuAdapter.MenuViewHolder
 
         holder.itemName.setText(item.getName());
         holder.itemDescription.setText(item.getDescription());
-        holder.itemPrice.setText(String.format("$%.2f", item.getPrice()));
+        holder.itemPrice.setText(String.format("₱%.2f", item.getPrice()));
         holder.itemCategoryChip.setText(item.getCategory());
 
         // Load Image using Glide
@@ -71,7 +71,7 @@ public class MenuAdapter extends RecyclerView.Adapter<MenuAdapter.MenuViewHolder
             holder.itemImage.setAlpha(1.0f);
             holder.itemName.setTextColor(Color.parseColor("#111827")); // Dark Gray/Black
             holder.itemDescription.setTextColor(Color.parseColor("#6B7280")); // Gray
-            holder.itemPrice.setText(String.format("$%.2f", item.getPrice()));
+            holder.itemPrice.setText(String.format("₱%.2f", item.getPrice()));
             holder.itemPrice.setTextColor(Color.parseColor("#111827"));
         }
 

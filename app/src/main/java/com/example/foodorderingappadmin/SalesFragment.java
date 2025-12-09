@@ -10,7 +10,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
-
+import androidx.fragment.app.FragmentManager; // Import FragmentManager
 import com.google.android.material.chip.ChipGroup;
 import com.google.android.material.tabs.TabLayout;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -117,14 +117,17 @@ public class SalesFragment extends Fragment {
 
         Query query = db.collection("orders");
 
-        // Note: For compound queries (range filters), Firestore usually requires an index.
-        // If this crashes, check Logcat for a link to create the index.
         if (start != null) {
             query = query.whereGreaterThanOrEqualTo("orderedAt", start)
                     .whereLessThanOrEqualTo("orderedAt", end);
         }
 
         query.get().addOnSuccessListener(snapshots -> {
+            // FIX 1: Check if the fragment is still attached before updating UI/calling child managers
+            if (!isAdded() || getContext() == null) {
+                return;
+            }
+
             double totalRevenue = 0;
             int totalOrders = 0;
             long totalItems = 0;
@@ -133,14 +136,10 @@ public class SalesFragment extends Fragment {
             for (QueryDocumentSnapshot doc : snapshots) {
                 Order order = doc.toObject(Order.class);
 
-                // Only count valid/completed orders?
-                // Uncomment to exclude cancelled: if ("Cancelled".equals(order.getStatus())) continue;
-
                 totalRevenue += order.getTotal();
                 totalOrders++;
                 if (order.getUserId() != null) uniqueCustomers.add(order.getUserId());
 
-                // Calculate Items Sold
                 if (order.getItems() != null) {
                     for (Map<String, Object> item : order.getItems()) {
                         Object qtyObj = item.get("qty");
@@ -156,11 +155,14 @@ public class SalesFragment extends Fragment {
             valueItemsSold.setText(String.valueOf(totalItems));
             valueCustomers.setText(String.valueOf(uniqueCustomers.size()));
 
-            // Update the bottom fragment with the new filter
+            // Refresh the bottom fragment
             refreshCurrentFragment();
 
         }).addOnFailureListener(e -> {
-            Toast.makeText(getContext(), "Failed to fetch data", Toast.LENGTH_SHORT).show();
+            // FIX 2: Check if the fragment is still attached before showing Toast
+            if (isAdded()) {
+                Toast.makeText(getContext(), "Failed to fetch data: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            }
         });
     }
 
@@ -188,17 +190,25 @@ public class SalesFragment extends Fragment {
             default: fragment = new SalesOrdersFragment(); break;
         }
 
+        // Use commitNow() for quick switching to ensure the Fragment is attached
+        // before subsequent calls, preventing the crash.
         getChildFragmentManager().beginTransaction()
                 .replace(R.id.segmentContainer, fragment)
-                .commitNow(); // Use commitNow to ensure fragment is attached before we call update
+                .commitNow();
 
         refreshCurrentFragment(); // Push the current dates to the new fragment
     }
 
     private void refreshCurrentFragment() {
-        Fragment currentFragment = getChildFragmentManager().findFragmentById(R.id.segmentContainer);
+        // FIX 3: Check if the fragment is still attached before accessing Fragment Manager
+        if (!isAdded()) {
+            return;
+        }
 
-        // This makes sure we pass the dates to whichever fragment is currently visible
+        FragmentManager fm = getChildFragmentManager();
+        Fragment currentFragment = fm.findFragmentById(R.id.segmentContainer);
+
+        // Push dates to the currently loaded fragment
         if (currentFragment instanceof SalesTopItemsFragment) {
             ((SalesTopItemsFragment) currentFragment).updateFilter(startDate, endDate);
         } else if (currentFragment instanceof SalesCustomersFragment) {

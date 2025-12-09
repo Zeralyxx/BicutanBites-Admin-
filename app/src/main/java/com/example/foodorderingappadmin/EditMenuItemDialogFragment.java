@@ -82,7 +82,17 @@ public class EditMenuItemDialogFragment extends DialogFragment {
         }
 
         // Setup Category Dropdown
-        String[] categories = {"Burgers", "Pizza", "Pasta", "Chicken", "Salads", "Sushi", "Steaks", "Desserts", "Beverages"};
+        String[] categories = {
+                "Sandwiches & Rolls",
+                "Sizzling Specials",
+                "Pasta & Noodles",
+                "Chicken & Meats",
+                "Appetizers/Sides",
+                "Noodle Soup",
+                "Filipino Classics",
+                "Desserts",
+                "Beverages"
+        };
         ArrayAdapter<String> adapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_dropdown_item_1line, categories);
         actCategory.setAdapter(adapter);
 
