@@ -47,10 +47,8 @@ public class OrdersFragment extends Fragment {
     private ChipGroup filterChipGroup;
     private TextInputEditText searchEditText;
 
-    // Listener object to manage the Firestore subscription
+    // Listener object to manage the Firestore real-time subscription
     private ListenerRegistration orderListenerRegistration;
-
-    // FIX: Removed private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
     private String selectedStatus = "All";
     private String searchText = "";
@@ -67,6 +65,7 @@ public class OrdersFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         db = FirebaseFirestore.getInstance();
+        // Initialize UI components and RecyclerView setup
         ordersRecyclerView = view.findViewById(R.id.ordersRecyclerView);
         filterChipGroup = view.findViewById(R.id.filterChipGroup);
         searchEditText = view.findViewById(R.id.searchEditText);
@@ -85,7 +84,7 @@ public class OrdersFragment extends Fragment {
     @Override
     public void onStart() {
         super.onStart();
-        fetchOrders();
+        fetchOrders(); // Start the real-time subscription
     }
 
     // Stop listening when the fragment goes into the background
@@ -93,7 +92,7 @@ public class OrdersFragment extends Fragment {
     public void onStop() {
         super.onStop();
         if (orderListenerRegistration != null) {
-            // Unsubscribe from Firestore updates
+            // Unsubscribe from Firestore updates to prevent memory leaks and unnecessary data usage
             orderListenerRegistration.remove();
         }
     }
@@ -101,18 +100,20 @@ public class OrdersFragment extends Fragment {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        // FIX: No executor shutdown needed since the field was removed.
     }
 
     private void fetchOrders() {
+        // Remove any existing listener before starting a new one
         if (orderListenerRegistration != null) {
             orderListenerRegistration.remove();
         }
 
+        // Define the base query for active admin orders (excluding Completed and Cancelled)
         Query query = db.collection("orders")
                 .whereNotIn("status", Arrays.asList("Completed", "Cancelled"))
                 .orderBy("orderedAt", Query.Direction.DESCENDING);
 
+        // Start the real-time listener
         orderListenerRegistration = query.addSnapshotListener(new EventListener<QuerySnapshot>() {
             @Override
             public void onEvent(@Nullable QuerySnapshot value, @Nullable FirebaseFirestoreException error) {
@@ -130,6 +131,7 @@ public class OrdersFragment extends Fragment {
                     List<Order> incomingOrders = new ArrayList<>();
                     List<Task<Void>> userFetchTasks = new ArrayList<>();
 
+                    // 1. Process incoming order documents and launch parallel user fetches
                     for (QueryDocumentSnapshot doc : value) {
                         Order order = doc.toObject(Order.class);
                         order.setOrderId(doc.getId());
@@ -137,8 +139,7 @@ public class OrdersFragment extends Fragment {
 
                         String userId = order.getUserId();
                         if (userId != null && !userId.isEmpty()) {
-                            // FIX: Removed custom executor from continueWith.
-                            // The task now uses the GMS Task internal background pool.
+                            // Fetch user name (customerNameForSearch) for display/search capability
                             Task<Void> userTask = db.collection("users").document(userId).get()
                                     .continueWith((Task<DocumentSnapshot> task) -> {
                                         if (task.isSuccessful() && task.getResult().exists()) {
@@ -151,15 +152,14 @@ public class OrdersFragment extends Fragment {
                         }
                     }
 
-                    // The Tasks.whenAll().addOnCompleteListener() runs on the Main Thread by default,
-                    // which is correct for updating the UI.
+                    // 2. Wait for all background user fetches to complete
                     Tasks.whenAll(userFetchTasks).addOnCompleteListener(task -> {
                         if (!isAdded()) return;
 
                         masterOrderList.clear();
                         masterOrderList.addAll(incomingOrders);
 
-                        // This call executes on the Main Thread, resolving the crash.
+                        // 3. Update the UI elements (Chip counts, list filtering) on the Main Thread
                         updateChipCountsAndFilter(masterOrderList);
                     });
                 }
@@ -178,6 +178,7 @@ public class OrdersFragment extends Fragment {
 
         String currentRawStatus = selectedStatus;
 
+        // Calculate counts for each status category
         for (Order order : orders) {
             switch (order.getStatus()) {
                 case "Pending": pendingCount++; break;
@@ -186,12 +187,13 @@ public class OrdersFragment extends Fragment {
             }
         }
 
+        // Update the visual count and state of each filter chip
         updateChipCount(R.id.chipAll, orders.size(), currentRawStatus, "All");
         updateChipCount(R.id.chipPending, pendingCount, currentRawStatus, "Pending");
         updateChipCount(R.id.chipBeingMade, madeCount, currentRawStatus, "Being Made");
         updateChipCount(R.id.chipDelivering, deliveredCount, currentRawStatus, "Being Delivered");
 
-        filterOrderList();
+        filterOrderList(); // Re-filter the displayed list based on the current selection/search
     }
 
     private void updateChipCount(int chipId, int count, String currentRawStatus, String dbStatusName) {
@@ -202,12 +204,13 @@ public class OrdersFragment extends Fragment {
             chip.setText(currentText + " (" + count + ")");
 
             if (dbStatusName.equalsIgnoreCase(currentRawStatus)) {
-                filterChipGroup.check(chipId);
+                filterChipGroup.check(chipId); // Keep the active chip checked
             }
         }
     }
 
     private void setupStatusChipListener() {
+        // Listener to change the filter when a status chip is clicked
         filterChipGroup.setOnCheckedStateChangeListener((group, checkedIds) -> {
             if (checkedIds.isEmpty()) {
                 group.check(R.id.chipAll);
@@ -233,6 +236,7 @@ public class OrdersFragment extends Fragment {
     }
 
     private void setupSearchListener() {
+        // Listener for real-time search filtering
         searchEditText.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             @Override
@@ -251,6 +255,7 @@ public class OrdersFragment extends Fragment {
 
         displayedOrderList.clear();
 
+        // 1. Filter by selected status (if not "All")
         String rawStatus = selectedStatus;
         boolean filterByStatus = !rawStatus.equalsIgnoreCase("All");
 
@@ -263,11 +268,13 @@ public class OrdersFragment extends Fragment {
             statusFilteredList = masterOrderList;
         }
 
+        // 2. Apply search text filter
         if (searchText.isEmpty()) {
             displayedOrderList.addAll(statusFilteredList);
         } else {
             String finalSearchText = searchText.toLowerCase(Locale.getDefault());
 
+            // Filter items based on Order ID, Note, or fetched Customer Name
             for (Order order : statusFilteredList) {
                 String id = order.getOrderId().toLowerCase(Locale.getDefault());
                 String note = order.getNote() != null ? order.getNote().toLowerCase(Locale.getDefault()) : "";
@@ -280,6 +287,6 @@ public class OrdersFragment extends Fragment {
             }
         }
 
-        orderAdapter.notifyDataSetChanged();
+        orderAdapter.notifyDataSetChanged(); // Update the RecyclerView
     }
 }

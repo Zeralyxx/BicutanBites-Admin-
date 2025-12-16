@@ -27,17 +27,13 @@ public class LoginActivity extends AppCompatActivity {
     private TextInputEditText emailEditText, passwordEditText;
     private MaterialButton btnLogin;
     private FirebaseAuth mAuth;
-    private FirebaseFirestore db; // Initialize Firestore
-
-    // The single, authorized admin email (Optional, but good for quick verification)
-    // IMPORTANT: If you want only one specific email to work, you can uncomment these lines
-    // private static final String AUTHORIZED_EMAIL = "admin@foodexpress.com";
+    private FirebaseFirestore db;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // Force Light Mode
+        // Force Light Mode for the Admin application
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
 
         setContentView(R.layout.activity_login);
@@ -51,17 +47,13 @@ public class LoginActivity extends AppCompatActivity {
         passwordEditText = findViewById(R.id.passwordEditText);
         btnLogin = findViewById(R.id.btnLogin);
 
-        // Check if user is already logged in
+        // Check if user is already logged in (persistence check)
         if (mAuth.getCurrentUser() != null) {
             checkAdminRoleAndNavigate(mAuth.getCurrentUser());
         }
 
-        btnLogin.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                loginUser();
-            }
-        });
+        // Setup Login Button Listener
+        btnLogin.setOnClickListener(v -> loginUser());
     }
 
     private void loginUser() {
@@ -81,64 +73,56 @@ public class LoginActivity extends AppCompatActivity {
             return;
         }
 
-        // Show loading state
         setLoadingState(true);
 
-        // 1. Authenticate with Firebase
+        // 1. Authenticate user credentials with Firebase Authentication
         mAuth.signInWithEmailAndPassword(email, password)
-                .addOnCompleteListener(new OnCompleteListener<AuthResult>() {
-                    @Override
-                    public void onComplete(@NonNull Task<AuthResult> task) {
-                        if (task.isSuccessful()) {
-                            FirebaseUser user = mAuth.getCurrentUser();
-                            if (user != null) {
-                                // 2. If authentication succeeds, verify the admin role
-                                checkAdminRoleAndNavigate(user);
-                            } else {
-                                handleLoginFailure("Authentication failed: User object is null.");
-                            }
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        FirebaseUser user = mAuth.getCurrentUser();
+                        if (user != null) {
+                            // 2. If Auth succeeds, verify the user has the 'admin' role
+                            checkAdminRoleAndNavigate(user);
                         } else {
-                            // Login Failure
-                            String errorMessage;
-                            try {
-                                throw task.getException();
-                            } catch (FirebaseAuthInvalidUserException e) {
-                                errorMessage = "User not found or account disabled.";
-                            } catch (FirebaseAuthInvalidCredentialsException e) {
-                                errorMessage = "Invalid email or password.";
-                            } catch (Exception e) {
-                                errorMessage = "Authentication failed. " + e.getMessage();
-                            }
-                            handleLoginFailure(errorMessage);
+                            handleLoginFailure("Authentication failed: User object is null.");
                         }
+                    } else {
+                        // Handle specific Auth errors (e.g., wrong password/email)
+                        String errorMessage;
+                        try {
+                            throw task.getException();
+                        } catch (FirebaseAuthInvalidUserException e) {
+                            errorMessage = "User not found or account disabled.";
+                        } catch (FirebaseAuthInvalidCredentialsException e) {
+                            errorMessage = "Invalid email or password.";
+                        } catch (Exception e) {
+                            errorMessage = "Authentication failed. " + e.getMessage();
+                        }
+                        handleLoginFailure(errorMessage);
                     }
                 });
     }
 
     private void checkAdminRoleAndNavigate(FirebaseUser user) {
-        // We will check a dedicated collection 'admins'.
-        // A document exists in 'admins' with the user's UID if they are an admin.
+        // 3. Verify Admin Role: Check for the user's UID in the 'admins' collection
         db.collection("admins").document(user.getUid()).get()
-                .addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
-                    @Override
-                    public void onComplete(@NonNull Task<DocumentSnapshot> task) {
-                        if (task.isSuccessful()) {
-                            DocumentSnapshot document = task.getResult();
-                            if (document.exists()) {
-                                // Role Check Success: User is an admin
-                                Toast.makeText(LoginActivity.this, "Admin Login Successful", Toast.LENGTH_SHORT).show();
-                                navigateToDashboard();
-                            } else {
-                                // Role Check Failure: Valid user but not an admin
-                                // IMPORTANT: Sign out the user immediately to prevent access.
-                                mAuth.signOut();
-                                handleLoginFailure("Access Denied: Account is not authorized as an administrator.");
-                            }
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        DocumentSnapshot document = task.getResult();
+                        if (document.exists()) {
+                            // Role Check Success: User is an admin
+                            Toast.makeText(LoginActivity.this, "Admin Login Successful", Toast.LENGTH_SHORT).show();
+                            navigateToDashboard();
                         } else {
-                            // Firestore Read Failure (e.g., network error)
+                            // Role Check Failure: Valid Firebase user, but NOT an authorized admin.
+                            // CRITICAL: Sign out the user immediately to prevent non-admin access.
                             mAuth.signOut();
-                            handleLoginFailure("Error checking permissions. Please try again.");
+                            handleLoginFailure("Access Denied: Account is not authorized as an administrator.");
                         }
+                    } else {
+                        // Firestore Read Failure (network/permissions error)
+                        mAuth.signOut();
+                        handleLoginFailure("Error checking permissions. Please try again.");
                     }
                 });
     }
@@ -149,6 +133,7 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void setLoadingState(boolean isLoading) {
+        // Manages button state during the asynchronous login process
         if (isLoading) {
             btnLogin.setEnabled(false);
             btnLogin.setText("Signing In...");
@@ -159,8 +144,8 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void navigateToDashboard() {
+        // Navigates to the main activity and clears the back stack
         Intent intent = new Intent(LoginActivity.this, MainActivity.class);
-        // Clear the back stack so user can't go back to login screen
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
         finish();

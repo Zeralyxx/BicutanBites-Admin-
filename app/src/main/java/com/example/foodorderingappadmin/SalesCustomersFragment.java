@@ -24,62 +24,75 @@ public class SalesCustomersFragment extends Fragment {
 
     private RecyclerView recyclerView;
     private CustomerAdapter adapter;
-    private List<CustomerStat> customerList = new ArrayList<>();
+    private final List<CustomerStat> customerList = new ArrayList<>();
     private FirebaseFirestore db;
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_sales_list, container, false);
+
+        // Initialize RecyclerView and Adapter
         recyclerView = view.findViewById(R.id.recyclerView);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         adapter = new CustomerAdapter(customerList);
         recyclerView.setAdapter(adapter);
+
         db = FirebaseFirestore.getInstance();
         return view;
     }
 
+    // Main function to fetch and process sales data based on date range
     public void updateFilter(Date start, Date end) {
         if (db == null) return;
 
         Query query = db.collection("orders");
+        // Apply date range filters if provided
         if (start != null) {
             query = query.whereGreaterThanOrEqualTo("orderedAt", start)
                     .whereLessThanOrEqualTo("orderedAt", end);
         }
 
+        // Fetch orders once (no real-time listener needed for sales aggregation)
         query.get().addOnSuccessListener(snapshots -> {
             Map<String, CustomerStat> statsMap = new HashMap<>();
 
+            // Aggregate data by unique User ID
             for (QueryDocumentSnapshot doc : snapshots) {
                 Order order = doc.toObject(Order.class);
                 String uid = order.getUserId();
                 if (uid == null) continue;
 
-                if (!statsMap.containsKey(uid)) {
-                    statsMap.put(uid, new CustomerStat(uid));
-                }
+                // Create or retrieve the CustomerStat object for the User ID
+                statsMap.putIfAbsent(uid, new CustomerStat(uid));
                 CustomerStat stat = statsMap.get(uid);
+
+                // Accumulate statistics
                 stat.totalSpent += order.getTotal();
                 stat.orderCount++;
             }
 
             customerList.clear();
             customerList.addAll(statsMap.values());
-            // Sort by Total Spent
+
+            // Sort customers by Total Spent (descending)
             Collections.sort(customerList, (a, b) -> Double.compare(b.totalSpent, a.totalSpent));
 
             if (adapter != null) adapter.notifyDataSetChanged();
         });
     }
 
+    // Data structure to hold aggregated statistics for a single customer
     static class CustomerStat {
-        String userId; double totalSpent; int orderCount;
+        String userId;
+        double totalSpent;
+        int orderCount;
         CustomerStat(String uid) { userId = uid; }
     }
 
+    // RecyclerView Adapter for displaying customer sales statistics
     private class CustomerAdapter extends RecyclerView.Adapter<CustomerAdapter.ViewHolder> {
-        List<CustomerStat> list;
+        final List<CustomerStat> list;
         CustomerAdapter(List<CustomerStat> l) { list = l; }
 
         @NonNull @Override
@@ -94,7 +107,7 @@ public class SalesCustomersFragment extends Fragment {
             holder.txtTotalSpent.setText(String.format("₱%.2f", item.totalSpent));
             holder.txtOrderCount.setText(item.orderCount + " Orders");
 
-            // Fetch Name (Simple cache-less approach for now)
+            // Fetch the customer's name using their ID
             db.collection("users").document(item.userId).get().addOnSuccessListener(doc -> {
                 if (doc.exists()) {
                     String name = doc.getString("name");
@@ -105,6 +118,7 @@ public class SalesCustomersFragment extends Fragment {
 
         @Override public int getItemCount() { return list.size(); }
 
+        // ViewHolder for the individual customer stat item
         class ViewHolder extends RecyclerView.ViewHolder {
             TextView txtCustomerName, txtOrderCount, txtTotalSpent;
             ViewHolder(View v) {

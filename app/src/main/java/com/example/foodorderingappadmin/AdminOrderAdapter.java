@@ -32,10 +32,10 @@ import java.util.Map;
 
 public class AdminOrderAdapter extends RecyclerView.Adapter<AdminOrderAdapter.OrderViewHolder> {
 
-    private Context context;
-    private List<Order> orderList;
-    private FirebaseFirestore db;
-    private String[] statusOptions;
+    private final Context context;
+    private final List<Order> orderList;
+    private final FirebaseFirestore db;
+    private final String[] statusOptions;
 
     public AdminOrderAdapter(Context context, List<Order> orderList) {
         this.context = context;
@@ -55,7 +55,7 @@ public class AdminOrderAdapter extends RecyclerView.Adapter<AdminOrderAdapter.Or
     public void onBindViewHolder(@NonNull OrderViewHolder holder, int position) {
         Order order = orderList.get(position);
 
-        // --- 1. Basic Info ---
+        // --- 1. Basic Order Info ---
         String displayId = order.getOrderId();
         if (displayId != null && displayId.length() > 8) displayId = displayId.substring(0, 8);
         holder.txtOrderId.setText("Order #" + displayId);
@@ -66,31 +66,24 @@ public class AdminOrderAdapter extends RecyclerView.Adapter<AdminOrderAdapter.Or
             holder.txtDate.setText(sdf.format(order.getOrderedAt()));
         }
 
-        // --- 2. User/Delivery Info (Fetched from Users Collection) ---
-        // Initialize placeholders
+        // --- 2. User/Delivery Info (Asynchronous Fetch) ---
         holder.txtCustomerName.setText("Loading Name...");
         holder.txtDeliveryAddress.setText("Loading Address...");
         holder.txtCustomerPhone.setText("Loading Info...");
 
         String userId = order.getUserId();
         if (userId != null && !userId.isEmpty()) {
+            // Fetch user details in the background using the Order's userId
             db.collection("users").document(userId).get()
                     .addOnSuccessListener(documentSnapshot -> {
                         if (documentSnapshot.exists()) {
                             String name = documentSnapshot.getString("name");
                             String address = documentSnapshot.getString("address");
                             String phone = documentSnapshot.getString("phoneNumber");
-                            // String email = documentSnapshot.getString("email"); // We don't need email anymore
 
                             holder.txtCustomerName.setText(name != null ? name : "Unknown User");
                             holder.txtDeliveryAddress.setText(address != null ? address : "No Address Provided");
-
-                            // MODIFIED LOGIC: Only show phone if it exists, otherwise show placeholder
-                            if (phone != null && !phone.isEmpty()) {
-                                holder.txtCustomerPhone.setText(phone);
-                            } else {
-                                holder.txtCustomerPhone.setText("No Phone Provided");
-                            }
+                            holder.txtCustomerPhone.setText(phone != null && !phone.isEmpty() ? phone : "No Phone Provided");
                         } else {
                             holder.txtCustomerName.setText("User Not Found");
                         }
@@ -121,20 +114,22 @@ public class AdminOrderAdapter extends RecyclerView.Adapter<AdminOrderAdapter.Or
             holder.cardCustomerNote.setVisibility(View.GONE);
         }
 
-        // --- 5. Status Dropdown ---
+        // --- 5. Status Dropdown and Styling ---
         CustomStatusArrayAdapter adapter = new CustomStatusArrayAdapter(
                 context, android.R.layout.simple_spinner_dropdown_item, statusOptions
         );
         holder.statusAutoComplete.setAdapter(adapter);
+        // Set the current order status text and styling
         holder.statusAutoComplete.setText(order.getStatus(), false);
         applyStatusStyle(holder, order.getStatus());
 
+        // Listener to update DB when a new status is selected from the dropdown
         holder.statusAutoComplete.setOnItemClickListener((parent, view, pos, id) -> {
             String newStatus = (String) parent.getItemAtPosition(pos);
             updateOrderStatus(order.getOrderId(), newStatus);
         });
 
-        // --- 6. Mark as Done Button ---
+        // --- 6. Mark as Done Button Action ---
         holder.btnMarkAsDone.setOnClickListener(v -> {
             updateOrderStatus(order.getOrderId(), "Completed");
         });
@@ -143,7 +138,6 @@ public class AdminOrderAdapter extends RecyclerView.Adapter<AdminOrderAdapter.Or
     private void addChipToGroup(ChipGroup chipGroup, String text) {
         Chip chip = new Chip(context);
         chip.setText(text);
-        // Use a safe light gray color for background
         chip.setChipBackgroundColor(ColorStateList.valueOf(Color.parseColor("#F3F4F6")));
         chip.setTextColor(Color.parseColor("#374151"));
         chip.setEnsureMinTouchTargetSize(false);
@@ -152,6 +146,7 @@ public class AdminOrderAdapter extends RecyclerView.Adapter<AdminOrderAdapter.Or
 
     private void updateOrderStatus(String orderId, String newStatus) {
         if (orderId == null) return;
+        // Update the status field in Firestore
         db.collection("orders").document(orderId)
                 .update("status", newStatus)
                 .addOnSuccessListener(aVoid -> Toast.makeText(context, "Order Updated", Toast.LENGTH_SHORT).show())
@@ -163,6 +158,7 @@ public class AdminOrderAdapter extends RecyclerView.Adapter<AdminOrderAdapter.Or
         int tintColorId = R.color.black;
         int iconId = 0;
 
+        // Determine colors and icon based on status string
         if (status != null) {
             switch (status) {
                 case "Pending":
@@ -179,6 +175,7 @@ public class AdminOrderAdapter extends RecyclerView.Adapter<AdminOrderAdapter.Or
         }
 
         try {
+            // Apply determined colors and icon to the TextInputLayout and AutoCompleteTextView
             int color = ContextCompat.getColor(context, tintColorId);
             int bg = ContextCompat.getColor(context, bgColorId);
             holder.statusInputLayout.setBoxBackgroundColor(bg);
@@ -202,10 +199,11 @@ public class AdminOrderAdapter extends RecyclerView.Adapter<AdminOrderAdapter.Or
 
         public OrderViewHolder(@NonNull View itemView) {
             super(itemView);
+            // Bind all UI components from item_admin_order.xml
             txtOrderId = itemView.findViewById(R.id.txtOrderId);
             txtDate = itemView.findViewById(R.id.txtDate);
             txtTotal = itemView.findViewById(R.id.txtTotal);
-            txtCustomerName = itemView.findViewById(R.id.txtCustomerName); // NEW
+            txtCustomerName = itemView.findViewById(R.id.txtCustomerName);
             txtCustomerPhone = itemView.findViewById(R.id.txtCustomerPhone);
             txtDeliveryAddress = itemView.findViewById(R.id.txtDeliveryAddress);
             txtCustomerNote = itemView.findViewById(R.id.txtCustomerNote);
@@ -218,18 +216,22 @@ public class AdminOrderAdapter extends RecyclerView.Adapter<AdminOrderAdapter.Or
     }
 
     // --- Adapter for Dropdown ---
+    // Custom ArrayAdapter to include status icons in the dropdown list items.
     private class CustomStatusArrayAdapter extends ArrayAdapter<String> {
         public CustomStatusArrayAdapter(@NonNull Context context, int resource, @NonNull String[] objects) {
             super(context, resource, objects);
         }
+
         @NonNull @Override
         public View getView(int position, @Nullable View convertView, @NonNull ViewGroup parent) {
             return getCustomView(position, convertView, parent);
         }
+
         @Override
         public View getDropDownView(int position, @Nullable View convertView, @NonNull ViewGroup parent) {
             return getCustomView(position, convertView, parent);
         }
+
         private View getCustomView(int position, View convertView, ViewGroup parent) {
             if (convertView == null) {
                 convertView = LayoutInflater.from(getContext()).inflate(R.layout.list_item_dropdown, parent, false);
@@ -237,15 +239,19 @@ public class AdminOrderAdapter extends RecyclerView.Adapter<AdminOrderAdapter.Or
             TextView statusText = convertView.findViewById(R.id.statusText);
             ImageView statusIcon = convertView.findViewById(R.id.statusIcon);
             String status = getItem(position);
+
             if (status != null) {
                 statusText.setText(status);
                 int iconId = 0;
+
+                // Set the corresponding icon for the status option
                 switch (status) {
                     case "Pending": iconId = R.drawable.ic_time; break;
                     case "Being Made": iconId = R.drawable.ic_chef; break;
                     case "Being Delivered": iconId = R.drawable.ic_delivery; break;
                     case "Cancelled": iconId = R.drawable.ic_cancel; break;
                 }
+
                 if (iconId != 0) {
                     statusIcon.setImageResource(iconId);
                     statusIcon.setVisibility(View.VISIBLE);

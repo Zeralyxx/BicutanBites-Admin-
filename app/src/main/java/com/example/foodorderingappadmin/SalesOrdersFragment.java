@@ -26,35 +26,37 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.stream.Collectors; // Import Collector
 
 public class SalesOrdersFragment extends Fragment {
 
     private RecyclerView recyclerView;
     private SimpleOrderAdapter adapter;
-    private List<Order> orderList = new ArrayList<>();
+    private final List<Order> orderList = new ArrayList<>();
     private FirebaseFirestore db;
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_sales_list, container, false);
+
+        // Initialize RecyclerView and Firestore
         recyclerView = view.findViewById(R.id.recyclerView);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         adapter = new SimpleOrderAdapter(orderList);
         recyclerView.setAdapter(adapter);
         db = FirebaseFirestore.getInstance();
+
         return view;
     }
 
+    // Main method called by the parent SalesFragment to apply date range filter
     public void updateFilter(Date start, Date end) {
         if (!isAdded() || db == null) return;
 
-        // FIX: Remove whereIn() clause from Firestore query to resolve the Failed Precondition error.
-        // We now filter the status on the client side after fetching by date range.
         Query query = db.collection("orders")
                 .orderBy("orderedAt", Query.Direction.DESCENDING);
 
+        // Apply date range filter to the query
         if (start != null) {
             query = query.whereGreaterThanOrEqualTo("orderedAt", start)
                     .whereLessThanOrEqualTo("orderedAt", end);
@@ -66,18 +68,18 @@ public class SalesOrdersFragment extends Fragment {
             List<Order> incomingOrders = new ArrayList<>();
             List<Task<Void>> userFetchTasks = new ArrayList<>();
 
-            // Step 1: Filter to get ONLY Completed/Cancelled orders AND initiate user name fetch
+            // Step 1: Filter to get ONLY historical (Completed/Cancelled) orders
             for (QueryDocumentSnapshot doc : snapshots) {
                 Order order = doc.toObject(Order.class);
                 String status = order.getStatus();
 
-                // CLIENT-SIDE FILTER: Check if status is in history group
+                // CLIENT-SIDE FILTER: Only show orders marked as completed or cancelled
                 if ("Completed".equalsIgnoreCase(status) || "Cancelled".equalsIgnoreCase(status)) {
 
                     order.setOrderId(doc.getId());
                     incomingOrders.add(order);
 
-                    // Fetch customer name for display (Same logic as OrdersFragment)
+                    // Initiate asynchronous fetch for customer name
                     String userId = order.getUserId();
                     if (userId != null && !userId.isEmpty()) {
                         Task<Void> userTask = db.collection("users").document(userId).get()
@@ -93,7 +95,7 @@ public class SalesOrdersFragment extends Fragment {
                 }
             }
 
-            // Step 2: Wait for all names to be fetched before updating UI
+            // Step 2: Wait for all customer names to be fetched before updating UI
             Tasks.whenAll(userFetchTasks).addOnCompleteListener(task -> {
                 if (!isAdded()) return;
 
@@ -109,13 +111,13 @@ public class SalesOrdersFragment extends Fragment {
         });
     }
 
+    // Nested Adapter for displaying historical order summaries
     private static class SimpleOrderAdapter extends RecyclerView.Adapter<SimpleOrderAdapter.ViewHolder> {
-        List<Order> list;
+        final List<Order> list;
         SimpleOrderAdapter(List<Order> l) { list = l; }
 
         @NonNull @Override
         public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            // FIX: Inflate the new detailed row layout
             View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_sales_order_detailed, parent, false);
             return new ViewHolder(v);
         }
@@ -125,26 +127,28 @@ public class SalesOrdersFragment extends Fragment {
             Order item = list.get(position);
             String id = item.getOrderId();
 
+            // Bind order details
             holder.txtOrderId.setText("#" + (id.length() > 8 ? id.substring(0, 8) : id));
             holder.txtTotal.setText(String.format("₱%.2f", item.getTotal()));
             holder.txtStatus.setText(item.getStatus());
 
-            // Display date
+            // Format and display date
             if (item.getOrderedAt() != null) {
                 SimpleDateFormat sdf = new SimpleDateFormat("MMM dd, hh:mm a", Locale.getDefault());
                 holder.txtDate.setText(sdf.format(item.getOrderedAt()));
             }
 
-            // Display user name (pre-fetched in fragment)
+            // Display pre-fetched customer name or a fallback
             holder.txtCustomerName.setText(item.getCustomerNameForSearch() != null ? item.getCustomerNameForSearch() : item.getUserId() != null ? item.getUserId().substring(0, 8) + "..." : "Guest");
 
-            // Display items list
+            // Display a summary of the first item
             holder.txtFirstItem.setText(getFirstItemText(item.getItems()));
 
-            // Style Status Badge
+            // Apply color styling to the status badge
             applyStatusStyle(holder, item.getStatus());
         }
 
+        // Utility to format a string summarizing the first item and item count
         private static String getFirstItemText(List<Map<String, Object>> items) {
             if (items == null || items.isEmpty()) return "No Items";
             Map<String, Object> firstItem = items.get(0);
@@ -160,13 +164,13 @@ public class SalesOrdersFragment extends Fragment {
             return String.format("%dx %s", qty, name);
         }
 
+        // Applies specific text and background colors based on status (Completed/Cancelled)
         private void applyStatusStyle(ViewHolder holder, String status) {
             int textColor;
             int bgColor;
 
             if (status != null) {
                 switch (status) {
-                    // We only care about Cancelled and Completed here for history view
                     case "Cancelled":
                         textColor = Color.RED; bgColor = Color.parseColor("#FEE2E2"); break;
                     case "Completed":

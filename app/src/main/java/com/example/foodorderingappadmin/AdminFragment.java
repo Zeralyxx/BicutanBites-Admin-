@@ -45,14 +45,13 @@ public class AdminFragment extends Fragment {
     private TextView subtitleItemCount;
     private TextInputEditText searchEditText;
     private ImageButton btnLogout;
-
     private RecyclerView menuRecyclerView;
     private MenuAdapter menuAdapter;
 
     private List<MenuItem> masterMenuList;
     private List<MenuItem> displayedMenuList;
 
-    // Executor for background tasks
+    // Executor for offloading heavy, non-UI tasks (e.g., filtering/counting)
     private ExecutorService executor = Executors.newSingleThreadExecutor();
 
     private String selectedCategory = "All";
@@ -69,27 +68,29 @@ public class AdminFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         db = FirebaseFirestore.getInstance();
+        // UI Component Initialization
         categoryChipGroup = view.findViewById(R.id.categoryChipGroup);
         subtitleItemCount = view.findViewById(R.id.subtitleItemCount);
         searchEditText = view.findViewById(R.id.searchEditText);
         btnLogout = view.findViewById(R.id.btnLogout);
 
-        btnLogout.setOnClickListener(v -> showLogoutConfirmationDialog());
+        // Setup RecyclerView
+        menuRecyclerView = view.findViewById(R.id.menuRecyclerView);
+        menuRecyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
+        masterMenuList = new ArrayList<>();
+        displayedMenuList = new ArrayList<>();
+        menuAdapter = new MenuAdapter(getContext(), displayedMenuList);
+        menuRecyclerView.setAdapter(menuAdapter);
 
+        // Setup Action Listeners
+        btnLogout.setOnClickListener(v -> showLogoutConfirmationDialog());
         MaterialButton btnAddNewItem = view.findViewById(R.id.btnAddNewItem);
         btnAddNewItem.setOnClickListener(v -> {
             AddMenuItemDialogFragment dialog = new AddMenuItemDialogFragment();
             dialog.show(getParentFragmentManager(), "AddMenuItemDialog");
         });
 
-        menuRecyclerView = view.findViewById(R.id.menuRecyclerView);
-        menuRecyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
-
-        masterMenuList = new ArrayList<>();
-        displayedMenuList = new ArrayList<>();
-        menuAdapter = new MenuAdapter(getContext(), displayedMenuList);
-        menuRecyclerView.setAdapter(menuAdapter);
-
+        // Start core fragment functionality
         setupSearchListener();
         setupRealtimeUpdates();
     }
@@ -97,12 +98,14 @@ public class AdminFragment extends Fragment {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        executor.shutdownNow(); // IMPORTANT: Shut down the executor when the fragment is destroyed
+        // IMPORTANT: Shut down the executor to prevent memory leaks and rejected executions.
+        executor.shutdownNow();
     }
 
 
     // --- Data Fetching and Initialization ---
     private void setupRealtimeUpdates() {
+        // Establishes a continuous, real-time listener to Firestore.
         db.collection("menu_items")
                 .addSnapshotListener(new EventListener<QuerySnapshot>() {
                     @Override
@@ -119,24 +122,24 @@ public class AdminFragment extends Fragment {
                         if (value != null) {
                             final List<MenuItem> incomingItems = new ArrayList<>();
 
-                            // Phase 1: Build Item list (fast loop)
+                            // Phase 1: Deserialize data from Firestore
                             for (QueryDocumentSnapshot doc : value) {
                                 MenuItem item = doc.toObject(MenuItem.class);
                                 item.setId(doc.getId());
                                 incomingItems.add(item);
                             }
 
-                            // Phase 2: Offload heavy processing (counting/categorizing)
+                            // Phase 2: Offload CPU-heavy processing (counting categories) to a background thread.
                             executor.execute(() -> {
                                 final Set<String> categories = new HashSet<>();
-                                // Perform the category counting and filtering logic in the background
+                                // Perform the category counting in the background
                                 for (MenuItem item : incomingItems) {
                                     if (item.getCategory() != null && !item.getCategory().isEmpty()) {
                                         categories.add(item.getCategory());
                                     }
                                 }
 
-                                // Phase 3: Update UI on main thread
+                                // Phase 3: Update UI on the main thread after processing is complete.
                                 if (getActivity() != null) {
                                     getActivity().runOnUiThread(() -> {
                                         if (!isAdded()) return;
@@ -156,12 +159,13 @@ public class AdminFragment extends Fragment {
 
     // --- Search Logic ---
     private void setupSearchListener() {
+        // Sets up real-time filtering based on user input.
         searchEditText.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 searchText = s.toString().toLowerCase(Locale.getDefault());
-                filterMenuList();
+                filterMenuList(); // Trigger filtering on every text change
             }
             @Override public void afterTextChanged(Editable s) {}
         });
@@ -174,10 +178,9 @@ public class AdminFragment extends Fragment {
         }
 
         displayedMenuList.clear();
-        // ... (Filtering logic remains the same) ...
 
+        // 1. Filter by category first
         List<MenuItem> categoryFilteredList;
-
         if (selectedCategory.equals("All")) {
             categoryFilteredList = new ArrayList<>(masterMenuList);
         } else {
@@ -186,6 +189,7 @@ public class AdminFragment extends Fragment {
                     .collect(Collectors.toList());
         }
 
+        // 2. Apply search text filter
         if (searchText.isEmpty()) {
             displayedMenuList.addAll(categoryFilteredList);
         } else {
@@ -198,6 +202,7 @@ public class AdminFragment extends Fragment {
             }
         }
 
+        // Update item counts and the RecyclerView
         subtitleItemCount.setText(masterMenuList.size() + " total items • " + (displayedMenuList.size()) + " visible");
         menuAdapter.notifyDataSetChanged();
     }
@@ -208,21 +213,21 @@ public class AdminFragment extends Fragment {
         if (getView() == null) {
             return;
         }
-        // ... (Chip building logic remains the same) ...
 
+        // Prevent infinite loop by removing and re-setting the listener
         categoryChipGroup.setOnCheckedStateChangeListener(null);
         categoryChipGroup.removeAllViews();
 
-        boolean isAllSelected = selectedCategory.equals("All");
-        addChip("All (" + totalItems + ")", isAllSelected, "All");
+        addChip("All (" + totalItems + ")", selectedCategory.equals("All"), "All");
 
+        // Add a chip for each unique category found in the database
         for (String category : categories) {
             long count = masterMenuList.stream().filter(item -> category.equals(item.getCategory())).count();
             String fullText = category + " (" + count + ")";
-            boolean isCategorySelected = selectedCategory.equals(category);
-            addChip(fullText, isCategorySelected, category);
+            addChip(fullText, selectedCategory.equals(category), category);
         }
 
+        // Re-set the listener to handle user category selection
         categoryChipGroup.setOnCheckedStateChangeListener((group, checkedIds) -> {
             if (!checkedIds.isEmpty()) {
                 Chip checkedChip = group.findViewById(checkedIds.get(0));
@@ -232,25 +237,20 @@ public class AdminFragment extends Fragment {
             } else {
                 selectedCategory = "All";
             }
-            filterMenuList();
+            filterMenuList(); // Re-filter the list based on the new category
         });
 
-        if (isAllSelected) {
-            Chip allChip = (Chip) categoryChipGroup.findViewWithTag("All");
-            if (allChip != null) {
-                allChip.setChecked(true);
-            }
-        } else {
-            Chip selectedChip = (Chip) categoryChipGroup.findViewWithTag(selectedCategory);
-            if (selectedChip != null) {
-                selectedChip.setChecked(true);
-            }
+        // Ensure the previously selected chip remains checked after refresh
+        Chip selectedChip = (Chip) categoryChipGroup.findViewWithTag(selectedCategory);
+        if (selectedChip != null) {
+            selectedChip.setChecked(true);
         }
     }
 
     private void addChip(String text, boolean isSelected, String categoryValue) {
         if (getContext() == null) return;
 
+        // Inflate a template Chip and set properties
         Chip chip = (Chip) LayoutInflater.from(getContext()).inflate(R.layout.chip_filter_template, categoryChipGroup, false);
 
         chip.setText(text);
@@ -275,6 +275,7 @@ public class AdminFragment extends Fragment {
     private void logoutUser() {
         if (isAdded()) {
             FirebaseAuth.getInstance().signOut();
+            // Navigate the user to the Login Activity, clearing the back stack
             Intent intent = new Intent(requireActivity(), LoginActivity.class);
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
             startActivity(intent);

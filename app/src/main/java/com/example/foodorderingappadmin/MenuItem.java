@@ -1,17 +1,20 @@
 package com.example.foodorderingappadmin;
 
 public class MenuItem {
-    private String id;
+
+    // Core fields corresponding to Firestore document structure
+    private String id; // Document ID (set after fetching)
     private String name;
     private String description;
     private double price;
     private String category;
     private String imageUrl;
-    private boolean isAvailable; // For "Out of Stock" functionality
+    private boolean isAvailable;
 
-    // Empty constructor required for Firestore
+    // Empty constructor required by Firestore for automatic object mapping (toObject)
     public MenuItem() {}
 
+    // Full constructor for creating new objects before saving to Firestore
     public MenuItem(String name, String description, double price, String category, String imageUrl, boolean isAvailable) {
         this.name = name;
         this.description = description;
@@ -21,7 +24,7 @@ public class MenuItem {
         this.isAvailable = isAvailable;
     }
 
-    // Getters and Setters
+    // --- Getters and Setters ---
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 

@@ -35,7 +35,7 @@ public class EditMenuItemDialogFragment extends DialogFragment {
     private FirebaseFirestore db;
     private MenuItem menuItemToEdit;
 
-    // Static method to create a new instance with the item data
+    // Static factory method to pass the MenuItem data to the dialog.
     public static EditMenuItemDialogFragment newInstance(MenuItem item) {
         EditMenuItemDialogFragment fragment = new EditMenuItemDialogFragment();
         fragment.menuItemToEdit = item;
@@ -47,7 +47,7 @@ public class EditMenuItemDialogFragment extends DialogFragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.dialog_add_menu_item, container, false);
 
-        // Transparent background for rounded corners
+        // Configure Dialog appearance: transparent background and no title.
         if (getDialog() != null && getDialog().getWindow() != null) {
             getDialog().getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
             getDialog().getWindow().requestFeature(Window.FEATURE_NO_TITLE);
@@ -63,15 +63,15 @@ public class EditMenuItemDialogFragment extends DialogFragment {
         actCategory = view.findViewById(R.id.actCategory);
         etImage = view.findViewById(R.id.etImage);
         switchAvailability = view.findViewById(R.id.switchAvailability);
-        MaterialButton btnUpdate = view.findViewById(R.id.btnAdd); // We will rename this button text
+        MaterialButton btnUpdate = view.findViewById(R.id.btnAdd);
         MaterialButton btnCancel = view.findViewById(R.id.btnCancel);
         ImageButton btnClose = view.findViewById(R.id.btnClose);
 
-        // --- CUSTOMIZE FOR EDIT MODE ---
+        // --- Customization for Edit Mode ---
         dialogTitle.setText("Edit Menu Item");
         btnUpdate.setText("Update");
 
-        // Pre-fill data
+        // Pre-fill existing data into the form fields.
         if (menuItemToEdit != null) {
             etName.setText(menuItemToEdit.getName());
             etDescription.setText(menuItemToEdit.getDescription());
@@ -81,7 +81,7 @@ public class EditMenuItemDialogFragment extends DialogFragment {
             switchAvailability.setChecked(menuItemToEdit.isAvailable());
         }
 
-        // Setup Category Dropdown
+        // Setup Category Dropdown options.
         String[] categories = {
                 "Sandwiches & Rolls",
                 "Sizzling Specials",
@@ -96,7 +96,7 @@ public class EditMenuItemDialogFragment extends DialogFragment {
         ArrayAdapter<String> adapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_dropdown_item_1line, categories);
         actCategory.setAdapter(adapter);
 
-        // Listeners
+        // Set action listeners.
         btnClose.setOnClickListener(v -> dismiss());
         btnCancel.setOnClickListener(v -> dismiss());
         btnUpdate.setOnClickListener(v -> updateItemInFirebase());
@@ -107,6 +107,7 @@ public class EditMenuItemDialogFragment extends DialogFragment {
     @Override
     public void onStart() {
         super.onStart();
+        // Set dialog width to match parent.
         Dialog dialog = getDialog();
         if (dialog != null) {
             dialog.getWindow().setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -121,6 +122,7 @@ public class EditMenuItemDialogFragment extends DialogFragment {
         String imageUrl = etImage.getText().toString().trim();
         boolean isAvailable = switchAvailability.isChecked();
 
+        // Validation check for required fields.
         if (TextUtils.isEmpty(name) || TextUtils.isEmpty(priceStr)) {
             Toast.makeText(getContext(), "Name and Price are required", Toast.LENGTH_SHORT).show();
             return;
@@ -128,15 +130,16 @@ public class EditMenuItemDialogFragment extends DialogFragment {
 
         double price = Double.parseDouble(priceStr);
 
-        // Create a Map for the update to avoid overwriting the ID or other potential fields
+        // Prepare fields for Firestore update.
         Map<String, Object> updates = new HashMap<>();
         updates.put("name", name);
         updates.put("description", desc);
         updates.put("price", price);
         updates.put("category", category);
         updates.put("imageUrl", imageUrl);
-        updates.put("available", isAvailable); // Make sure this matches your MenuItem field name (isAvailable getter -> "available" usually)
+        updates.put("available", isAvailable);
 
+        // Execute the Firestore update using the item's document ID.
         if (menuItemToEdit != null && menuItemToEdit.getId() != null) {
             db.collection("menu_items").document(menuItemToEdit.getId())
                     .update(updates)

@@ -10,7 +10,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentManager; // Import FragmentManager
+import androidx.fragment.app.FragmentManager;
 import com.google.android.material.chip.ChipGroup;
 import com.google.android.material.tabs.TabLayout;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -32,7 +32,7 @@ public class SalesFragment extends Fragment {
     private TabLayout segmentTabs;
     private FirebaseFirestore db;
 
-    // Current filter state
+    // Current filter state for child fragments
     private Date startDate;
     private Date endDate;
 
@@ -48,7 +48,7 @@ public class SalesFragment extends Fragment {
 
         db = FirebaseFirestore.getInstance();
 
-        // Initialize Views
+        // Initialize primary sales metric views
         valueRevenue = view.findViewById(R.id.valueRevenue);
         valueOrders = view.findViewById(R.id.valueOrders);
         valueItemsSold = view.findViewById(R.id.valueItemsSold);
@@ -57,17 +57,16 @@ public class SalesFragment extends Fragment {
         timeFilterGroup = view.findViewById(R.id.timeFilterGroup);
         segmentTabs = view.findViewById(R.id.segmentTabs);
 
-        // 1. Setup Time Filters
+        // Setup UI listeners and initial load
         setupTimeFilters();
-
-        // 2. Setup Tabs
         setupTabs();
-
-        // 3. Load initial data (All Time)
-        setFilterAllTime();
+        setFilterAllTime(); // Default to 'All Time' on startup
     }
 
+    // --- Time Filter Logic ---
+
     private void setupTimeFilters() {
+        // Listener to handle time filter chip selection (Week, Month, Year, All Time)
         timeFilterGroup.setOnCheckedStateChangeListener((group, checkedIds) -> {
             if (checkedIds.isEmpty()) return;
             int id = checkedIds.get(0);
@@ -84,23 +83,22 @@ public class SalesFragment extends Fragment {
         });
     }
 
-    // --- Filter Logic ---
-
+    // Methods to calculate and apply the date range filter
     private void setFilterWeek() {
         Calendar cal = Calendar.getInstance();
-        cal.add(Calendar.DAY_OF_YEAR, -7); // Last 7 days
+        cal.add(Calendar.DAY_OF_YEAR, -7);
         updateData(cal.getTime(), new Date(), "Last 7 Days");
     }
 
     private void setFilterMonth() {
         Calendar cal = Calendar.getInstance();
-        cal.add(Calendar.MONTH, -1); // Last 30 days
+        cal.add(Calendar.MONTH, -1);
         updateData(cal.getTime(), new Date(), "Last 30 Days");
     }
 
     private void setFilterYear() {
         Calendar cal = Calendar.getInstance();
-        cal.add(Calendar.YEAR, -1); // Last 365 days
+        cal.add(Calendar.YEAR, -1);
         updateData(cal.getTime(), new Date(), "Last Year");
     }
 
@@ -108,7 +106,7 @@ public class SalesFragment extends Fragment {
         updateData(null, null, "All Time");
     }
 
-    // --- Data Fetching ---
+    // --- Data Aggregation and UI Update ---
 
     private void updateData(@Nullable Date start, @Nullable Date end, String label) {
         this.startDate = start;
@@ -117,13 +115,15 @@ public class SalesFragment extends Fragment {
 
         Query query = db.collection("orders");
 
+        // Apply date filtering to the Firestore query
         if (start != null) {
             query = query.whereGreaterThanOrEqualTo("orderedAt", start)
                     .whereLessThanOrEqualTo("orderedAt", end);
         }
 
+        // Fetch orders once for the current date range
         query.get().addOnSuccessListener(snapshots -> {
-            // FIX 1: Check if the fragment is still attached before updating UI/calling child managers
+            // CRITICAL: Check if fragment is still attached before updating UI
             if (!isAdded() || getContext() == null) {
                 return;
             }
@@ -133,6 +133,7 @@ public class SalesFragment extends Fragment {
             long totalItems = 0;
             Set<String> uniqueCustomers = new HashSet<>();
 
+            // Aggregate metrics from the order snapshots
             for (QueryDocumentSnapshot doc : snapshots) {
                 Order order = doc.toObject(Order.class);
 
@@ -149,17 +150,16 @@ public class SalesFragment extends Fragment {
                 }
             }
 
-            // Update UI
+            // Update main sales metrics UI
             valueRevenue.setText(String.format("₱%.2f", totalRevenue));
             valueOrders.setText(String.valueOf(totalOrders));
             valueItemsSold.setText(String.valueOf(totalItems));
             valueCustomers.setText(String.valueOf(uniqueCustomers.size()));
 
-            // Refresh the bottom fragment
+            // Refresh the child fragment to update its segmented list view
             refreshCurrentFragment();
 
         }).addOnFailureListener(e -> {
-            // FIX 2: Check if the fragment is still attached before showing Toast
             if (isAdded()) {
                 Toast.makeText(getContext(), "Failed to fetch data: " + e.getMessage(), Toast.LENGTH_SHORT).show();
             }
@@ -178,29 +178,30 @@ public class SalesFragment extends Fragment {
             @Override public void onTabReselected(TabLayout.Tab tab) {}
         });
 
-        // Load default
+        // Load default fragment into the segment container
         loadFragmentForTab(0);
     }
 
     private void loadFragmentForTab(int position) {
         Fragment fragment;
+        // Select the appropriate child fragment based on tab position
         switch (position) {
             case 0: fragment = new SalesCustomersFragment(); break;
             case 1: fragment = new SalesTopItemsFragment(); break;
             default: fragment = new SalesOrdersFragment(); break;
         }
 
-        // Use commitNow() for quick switching to ensure the Fragment is attached
-        // before subsequent calls, preventing the crash.
+        // Use commitNow() to ensure the fragment is attached immediately, preventing race conditions
         getChildFragmentManager().beginTransaction()
                 .replace(R.id.segmentContainer, fragment)
                 .commitNow();
 
-        refreshCurrentFragment(); // Push the current dates to the new fragment
+        // Push the currently selected dates to the newly loaded child fragment
+        refreshCurrentFragment();
     }
 
     private void refreshCurrentFragment() {
-        // FIX 3: Check if the fragment is still attached before accessing Fragment Manager
+        // Check if the parent fragment is still active
         if (!isAdded()) {
             return;
         }
@@ -208,7 +209,7 @@ public class SalesFragment extends Fragment {
         FragmentManager fm = getChildFragmentManager();
         Fragment currentFragment = fm.findFragmentById(R.id.segmentContainer);
 
-        // Push dates to the currently loaded fragment
+        // Dynamically call the updateFilter method on the correct child fragment type
         if (currentFragment instanceof SalesTopItemsFragment) {
             ((SalesTopItemsFragment) currentFragment).updateFilter(startDate, endDate);
         } else if (currentFragment instanceof SalesCustomersFragment) {

@@ -35,7 +35,7 @@ public class AddMenuItemDialogFragment extends DialogFragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.dialog_add_menu_item, container, false);
 
-        // Make dialog background transparent to show our CardView rounded corners
+        // Configure the Dialog appearance: make background transparent and remove default title.
         if (getDialog() != null && getDialog().getWindow() != null) {
             getDialog().getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
             getDialog().getWindow().requestFeature(Window.FEATURE_NO_TITLE);
@@ -43,7 +43,7 @@ public class AddMenuItemDialogFragment extends DialogFragment {
 
         db = FirebaseFirestore.getInstance();
 
-        // Initialize Views
+        // Initialize all input and control Views
         etName = view.findViewById(R.id.etName);
         etDescription = view.findViewById(R.id.etDescription);
         etPrice = view.findViewById(R.id.etPrice);
@@ -54,8 +54,7 @@ public class AddMenuItemDialogFragment extends DialogFragment {
         MaterialButton btnCancel = view.findViewById(R.id.btnCancel);
         ImageButton btnClose = view.findViewById(R.id.btnClose);
 
-        // Setup Category Dropdown
-        // We provide default suggestions, but the user can type whatever they want
+        // Setup Category Dropdown Adapter
         String[] categories = {
                 "Sandwiches & Rolls",
                 "Sizzling Specials",
@@ -70,7 +69,7 @@ public class AddMenuItemDialogFragment extends DialogFragment {
         ArrayAdapter<String> adapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_dropdown_item_1line, categories);
         actCategory.setAdapter(adapter);
 
-        // Button Listeners
+        // Set Button Listeners to dismiss or save
         btnClose.setOnClickListener(v -> dismiss());
         btnCancel.setOnClickListener(v -> dismiss());
         btnAdd.setOnClickListener(v -> saveItemToFirebase());
@@ -81,7 +80,7 @@ public class AddMenuItemDialogFragment extends DialogFragment {
     @Override
     public void onStart() {
         super.onStart();
-        // Make the dialog width match the design (fill width with some margin)
+        // Adjust dialog dimensions to fill the width.
         Dialog dialog = getDialog();
         if (dialog != null) {
             int width = ViewGroup.LayoutParams.MATCH_PARENT;
@@ -94,11 +93,11 @@ public class AddMenuItemDialogFragment extends DialogFragment {
         String name = etName.getText().toString().trim();
         String desc = etDescription.getText().toString().trim();
         String priceStr = etPrice.getText().toString().trim();
-        String category = actCategory.getText().toString().trim(); // Gets text even if typed manually
+        String category = actCategory.getText().toString().trim();
         String imageUrl = etImage.getText().toString().trim();
         boolean isAvailable = switchAvailability.isChecked();
 
-        // Validation
+        // Input Validation
         if (TextUtils.isEmpty(name) || TextUtils.isEmpty(priceStr) || TextUtils.isEmpty(category)) {
             Toast.makeText(getContext(), "Please fill in all required fields", Toast.LENGTH_SHORT).show();
             return;
@@ -106,10 +105,10 @@ public class AddMenuItemDialogFragment extends DialogFragment {
 
         double price = Double.parseDouble(priceStr);
 
-        // Create Item Object
+        // Create Item Object (Assumes MenuItem class exists)
         MenuItem newItem = new MenuItem(name, desc, price, category, imageUrl, isAvailable);
 
-        // Save to Firestore "menu_items" collection
+        // Save new item to Firestore and handle callbacks
         db.collection("menu_items")
                 .add(newItem)
                 .addOnSuccessListener(documentReference -> {

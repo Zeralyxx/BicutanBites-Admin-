@@ -7,8 +7,10 @@ import java.util.List;
 import java.util.Map;
 
 public class Order {
+
+    // Core fields matching Firestore document keys
     private String orderId;
-    private String userId;
+    private String userId; // Mapped via @PropertyName
     private String status;
     private double total;
     private Date orderedAt;
@@ -16,17 +18,18 @@ public class Order {
     private String paymentMethod;
     private List<Map<String, Object>> items;
 
-    // NEW FIELD: Used only for filtering/display logic in the fragment/adapter.
-    // We exclude it so Firestore doesn't try to write this field back to the database.
+    // Temporary field used only for client-side filtering/display (e.g., searching by name).
     @Exclude
     private String customerNameForSearch;
 
+    // Empty constructor required by Firestore for automatic object mapping (toObject)
     public Order() {}
 
-    // Getters and Setters
+    // --- Getters and Setters ---
     public String getOrderId() { return orderId; }
     public void setOrderId(String orderId) { this.orderId = orderId; }
 
+    // Use @PropertyName to map the 'userId' Java field to 'userID' Firestore field (case matters)
     @PropertyName("userID")
     public String getUserId() { return userId; }
 
@@ -51,7 +54,7 @@ public class Order {
     public String getPaymentMethod() { return paymentMethod; }
     public void setPaymentMethod(String paymentMethod) { this.paymentMethod = paymentMethod; }
 
-    // Getter/Setter for the temporary search name field
+    // Use @Exclude to prevent Firestore from attempting to read/write this field
     @Exclude
     public String getCustomerNameForSearch() { return customerNameForSearch; }
     @Exclude

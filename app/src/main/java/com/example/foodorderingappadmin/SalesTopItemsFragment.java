@@ -4,7 +4,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ImageView; // Used for the new ImageView
+import android.widget.ImageView;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -26,26 +26,31 @@ public class SalesTopItemsFragment extends Fragment {
 
     private RecyclerView recyclerView;
     private TopItemsAdapter adapter;
-    private List<TopItem> topItemList = new ArrayList<>();
+    private final List<TopItem> topItemList = new ArrayList<>();
     private FirebaseFirestore db;
 
-    private Map<String, String> itemImageMap = new HashMap<>();
+    // Cache map to store item names and their corresponding image URLs
+    private final Map<String, String> itemImageMap = new HashMap<>();
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_sales_list, container, false);
+
+        // Initialize RecyclerView and Adapter
         recyclerView = view.findViewById(R.id.recyclerView);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         adapter = new TopItemsAdapter(topItemList);
         recyclerView.setAdapter(adapter);
         db = FirebaseFirestore.getInstance();
 
+        // Fetch image URLs for all menu items to use for display optimization
         fetchItemImageMap();
 
         return view;
     }
 
+    // Fetches all menu item images and stores them in a local map
     private void fetchItemImageMap() {
         db.collection("menu_items").get().addOnSuccessListener(snapshots -> {
             itemImageMap.clear();
@@ -60,10 +65,13 @@ public class SalesTopItemsFragment extends Fragment {
         });
     }
 
+    // Main function called by the parent SalesFragment to aggregate top selling items
     public void updateFilter(Date start, Date end) {
         if (db == null) return;
 
         Query query = db.collection("orders");
+
+        // Apply date range filters
         if (start != null) {
             query = query.whereGreaterThanOrEqualTo("orderedAt", start)
                     .whereLessThanOrEqualTo("orderedAt", end);
@@ -72,6 +80,7 @@ public class SalesTopItemsFragment extends Fragment {
         query.get().addOnSuccessListener(snapshots -> {
             Map<String, Integer> counts = new HashMap<>();
 
+            // Aggregate item quantities across all filtered orders
             for (QueryDocumentSnapshot doc : snapshots) {
                 Order order = doc.toObject(Order.class);
                 if (order.getItems() != null) {
@@ -81,31 +90,35 @@ public class SalesTopItemsFragment extends Fragment {
                         if (item.get("qty") instanceof Long) qty = (Long) item.get("qty");
                         else if (item.get("qty") instanceof Integer) qty = (Integer) item.get("qty");
 
+                        // Sum quantities for the item name
                         counts.put(name, counts.getOrDefault(name, 0) + (int)qty);
                     }
                 }
             }
 
+            // Convert map results into the list model
             topItemList.clear();
             for (Map.Entry<String, Integer> entry : counts.entrySet()) {
                 topItemList.add(new TopItem(entry.getKey(), entry.getValue()));
             }
-            // Sort Descending
+
+            // Sort items by count (quantity sold) in descending order
             Collections.sort(topItemList, (a, b) -> b.count - a.count);
 
             if (adapter != null) adapter.notifyDataSetChanged();
         });
     }
 
-    // --- Simple Data Class ---
+    // Data structure to hold item name and its total quantity sold
     static class TopItem {
-        String name; int count;
+        String name;
+        int count;
         TopItem(String n, int c) { name = n; count = c; }
     }
 
-    // --- Adapter ---
+    // RecyclerView Adapter for displaying top items
     private class TopItemsAdapter extends RecyclerView.Adapter<TopItemsAdapter.ViewHolder> {
-        List<TopItem> list;
+        final List<TopItem> list;
         TopItemsAdapter(List<TopItem> l) { list = l; }
 
         @NonNull @Override
@@ -117,11 +130,13 @@ public class SalesTopItemsFragment extends Fragment {
         @Override
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
             TopItem item = list.get(position);
+
+            // Bind rank, name, and quantity sold
             holder.txtRank.setText("#" + (position + 1));
             holder.txtItemName.setText(item.name);
             holder.txtQuantity.setText(String.valueOf(item.count));
 
-            // Load Image using cached map
+            // Load Image using the pre-fetched cache map
             String imageUrl = itemImageMap.get(item.name);
             if (imageUrl != null && !imageUrl.isEmpty()) {
                 Glide.with(getContext())
@@ -137,14 +152,15 @@ public class SalesTopItemsFragment extends Fragment {
 
         class ViewHolder extends RecyclerView.ViewHolder {
             TextView txtRank, txtItemName, txtQuantity;
-            ImageView itemImage; // CHANGED from ShapeableImageView to ImageView
+            ImageView itemImage;
 
             ViewHolder(View v) {
                 super(v);
+                // Bind UI components
                 txtRank = v.findViewById(R.id.txtRank);
                 txtItemName = v.findViewById(R.id.txtItemName);
                 txtQuantity = v.findViewById(R.id.txtQuantity);
-                itemImage = v.findViewById(R.id.itemImage); // Now finding the regular ImageView
+                itemImage = v.findViewById(R.id.itemImage);
             }
         }
     }

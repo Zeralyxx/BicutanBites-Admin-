@@ -2,7 +2,6 @@ package com.example.foodorderingappadmin;
 
 import android.app.AlertDialog;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -24,9 +23,9 @@ import java.util.List;
 
 public class MenuAdapter extends RecyclerView.Adapter<MenuAdapter.MenuViewHolder> {
 
-    private Context context;
-    private List<MenuItem> menuList;
-    private FirebaseFirestore db;
+    private final Context context;
+    private final List<MenuItem> menuList;
+    private final FirebaseFirestore db;
 
     public MenuAdapter(Context context, List<MenuItem> menuList) {
         this.context = context;
@@ -45,6 +44,7 @@ public class MenuAdapter extends RecyclerView.Adapter<MenuAdapter.MenuViewHolder
     public void onBindViewHolder(@NonNull MenuViewHolder holder, int position) {
         MenuItem item = menuList.get(position);
 
+        // Bind basic item details
         holder.itemName.setText(item.getName());
         holder.itemDescription.setText(item.getDescription());
         holder.itemPrice.setText(String.format("₱%.2f", item.getPrice()));
@@ -58,29 +58,30 @@ public class MenuAdapter extends RecyclerView.Adapter<MenuAdapter.MenuViewHolder
                     .into(holder.itemImage);
         }
 
-        // --- OUT OF STOCK VISUALS ---
+        // --- OUT OF STOCK VISUALS (Conditional Styling) ---
         if (!item.isAvailable()) {
-            // Gray out the item if out of stock
-            holder.itemImage.setAlpha(0.4f); // Dim image
+            // Apply dimming and 'Out of Stock' label if unavailable
+            holder.itemImage.setAlpha(0.4f);
             holder.itemName.setTextColor(Color.GRAY);
             holder.itemDescription.setTextColor(Color.LTGRAY);
             holder.itemPrice.setText("Out of Stock");
             holder.itemPrice.setTextColor(Color.RED);
         } else {
-            // Reset to normal
+            // Reset to default colors and price display
             holder.itemImage.setAlpha(1.0f);
-            holder.itemName.setTextColor(Color.parseColor("#111827")); // Dark Gray/Black
-            holder.itemDescription.setTextColor(Color.parseColor("#6B7280")); // Gray
+            holder.itemName.setTextColor(Color.parseColor("#111827"));
+            holder.itemDescription.setTextColor(Color.parseColor("#6B7280"));
             holder.itemPrice.setText(String.format("₱%.2f", item.getPrice()));
             holder.itemPrice.setTextColor(Color.parseColor("#111827"));
         }
 
-        // --- DELETE CONFIRMATION ---
+        // --- DELETE CONFIRMATION & ACTION ---
         holder.deleteButton.setOnClickListener(v -> {
             new AlertDialog.Builder(context)
                     .setTitle("Delete Item")
                     .setMessage("Are you sure you want to delete " + item.getName() + "?")
                     .setPositiveButton("Delete", (dialog, which) -> {
+                        // Execute Firestore deletion
                         if (item.getId() != null) {
                             db.collection("menu_items").document(item.getId())
                                     .delete()
@@ -94,8 +95,8 @@ public class MenuAdapter extends RecyclerView.Adapter<MenuAdapter.MenuViewHolder
 
         // --- EDIT FUNCTION ---
         holder.editButton.setOnClickListener(v -> {
+            // Show the Edit Dialog, passing the current item data
             if (context instanceof FragmentActivity) {
-                // Pass the item to the Edit Dialog
                 EditMenuItemDialogFragment dialog = EditMenuItemDialogFragment.newInstance(item);
                 dialog.show(((FragmentActivity) context).getSupportFragmentManager(), "EditMenuItemDialog");
             }
@@ -115,6 +116,7 @@ public class MenuAdapter extends RecyclerView.Adapter<MenuAdapter.MenuViewHolder
 
         public MenuViewHolder(@NonNull View itemView) {
             super(itemView);
+            // Bind all UI components
             itemImage = itemView.findViewById(R.id.itemImage);
             itemName = itemView.findViewById(R.id.itemName);
             itemDescription = itemView.findViewById(R.id.itemDescription);
